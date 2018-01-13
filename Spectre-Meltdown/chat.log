@@ -1,0 +1,61 @@
+2018-01-13 08:38:29	&xellos	spectre/meltdown
+2018-01-13 08:38:51	&xellos	เริ่มที่ memory ก่อน
+2018-01-13 08:39:55	&xellos	computer ปัจจุบันมี cache ไว้เก็บ memory ที่เพิ่ง access
+2018-01-13 08:40:32	&xellos	ก็จะมี L1, L2, L3
+2018-01-13 08:41:02	&xellos	ที่ต้องมี cache เพราะการดึงข้อมูลจาก memory มันใช้เวลาหลาย clock
+2018-01-13 08:42:11	&xellos	ดูจากตัวอย่างนี้ https://gist.github.com/worawit/07c60ba067b4f9560d67d2760e86bced
+2018-01-13 08:42:40	&xellos	จะเห็นว่าเวลาที่ดึงข้อมูลจาก cache นั้นจะใช้น้อยกว่าจาก memory
+2018-01-13 08:45:04	&xellos	คำสั่ง clflush คือคำสั่งให้ clear ข้อมูลที่อยู่ใน cache
+2018-01-13 08:45:45	&xellos	ดังนั้น ถ้ามีการ access memory นั้นอีกครั้ง ก็จะต้องดึงจาก memory
+2018-01-13 08:47:40	&xellos	จบเรื่อง memory
+2018-01-13 08:47:54	&xellos	ต่อด้วย spectre variant 1
+2018-01-13 08:52:47	&xellos	คงมีอ่านกันไปแล้วว่า speculative execution คือการที่ให้ cpu ทำงานคำสั่งถัดๆ ไปก่อนที่คำสั่งปัจจุบันจะเสร็จ ถ้าคำสั่งถัดไปไม่มี dependency
+2018-01-13 08:53:44	&xellos	โดยถ้าเจอพวก branch ก็จะ predict ว่าโปรแกรมน่าจะไปทำงานต่อที่ branch ไหน
+2018-01-13 08:54:42	&xellos	ที่ไม่คอยให้คำสั่งที่ทำอยู่คอยเสร็จก่อน เพราะคำสั่งพวกดึงข้อมูลจาก memory มันช้า
+2018-01-13 09:00:12	&xellos	อธิบายคำว่า retire ก่อนดีกว่า
+2018-01-13 09:02:37	&xellos	retire หมายถึงคำสั่งที่ทำอยู่ ทำเสร็จแล้ว และผลลัพธ์ของ instruction นั้น ถูก commit แล้ว เช่นเขียนใน memory แล้ว แก้ค่า register แล้ว
+2018-01-13 09:03:42	&xellos	instructions สามารถเอามาทำสลับกัน แต่ต้อง retire เป็นลำดับ
+2018-01-13 09:05:50	&xellos	เช่น xor eax, eax; mov rcx, [0x1234]; mov [rcx], eax; xor rdi, rsi
+2018-01-13 09:06:20	&xellos	ขณะที่ cpu ทำงาน xor eax, eax อยู่ แต่ยังไม่มี retire
+2018-01-13 09:07:21	&xellos	processor สามารถเริ่มทำคำสั่ง mov rcx, [0x1234] โดยไปดึงข้อมูลที่ address 0x1234
+2018-01-13 09:07:39	&xellos	และอาจเริ่มทำคำสั่ง xor rdi, rsi ด้วย
+2018-01-13 09:09:44	&xellos	แต่คำสั่ง mov [rcx], eax จะเห็นว่าต้องใช้ rcx กับ eax ที่ค่ามีการ define จาก 2 คำสั่งก่อนหน้า
+2018-01-13 09:13:16	&xellos	ในส่วนที่ทำงานล่วงหน้า ก็จะคอยว่าค่าจาก memory 0x1234 มีค่าอะไร
+2018-01-13 09:14:13	&xellos	ถ้าส่วนที่ทำล่วงหน้า ได้ค่า eax ที่เป็น 0 และ rcx จาก memory address 0x1234 ก็จะเริ่มทำงานก่อนที่จะ xor eax,eax จะ retire ได้
+2018-01-13 09:18:54	&xellos	จะเห็นว่าขณะที่คำสั่ง xor eax, eax ยังไม่ retire นั้น speculative execution นั้นได้มีการ fetch ข้อมูลจาก memory 0x1234 แล้ว
+2018-01-13 09:21:31	&xellos	ถึงทำให้มีการเปลี่ยนแปลงของ microarchitecture คือค่าใน memory 0x1234 อยู่ใน cache
+2018-01-13 09:22:00	&xellos	กลับมา spectre variant 1
+2018-01-13 09:23:45	&xellos	attack นี้ target speculative execution ที่ทำงาน branch condition ที่เป็น bound check
+2018-01-13 09:24:55	&xellos	เอาตัวอย่างจาก paper
+2018-01-13 09:25:32	&xellos	if (x < array1_size)  y = array2[array1[x] * 256];
+2018-01-13 09:29:51	&xellos	สมมติว่า array1_size ไม่อยู่ใน cache
+2018-01-13 09:30:51	&xellos	เวลาที่คำสั่ง compare x กับ array1_size ต้องคอยให้ถึง array1_size จาก memory เสร็จก่อนถึงจะรู้ว่าต้องทำใน if ไหม
+2018-01-13 09:32:47	&xellos	ระหว่างที่คอย ในส่วน speculation นั้นก็จะทำการ predict ว่า condition เป็น true หรือ false
+2018-01-13 09:33:30	&xellos	ถ้า predict ว่า true ก็จะเริ่ม fetch memory ของ array1[x]
+2018-01-13 09:35:54	&xellos	และถ้า array1[x] นั้นอยู่ใน cache ก็เป็นไปได้สูงที่ในส่วน speculation จะได้ค่า array1[x] ก่อน array1_size
+2018-01-13 09:37:11	&xellos	และเริ่มทำ array[x] * 256 ต่อ ซึ่งคำสั่งนี้ไม่ต้องยุ่งกับ memory ก็จะเร็ว
+2018-01-13 09:39:40	&xellos	ดังนั้นก็จะทำต่อ โดยการสั่ง fetch memory ของ array2[array1[x] * 256] ทั้งๆ ที่การ compare x กับ array1_size ยังไม่เสร็จ
+2018-01-13 09:42:17	&xellos	ลองคิดในกรณีที่ speculation predict ว่า branch นี้เป็น true เข้าไปทำใน if
+2018-01-13 09:43:44	&xellos	แต่ x คือค่า 0x1000 และค่า array1_size คือ 16
+2018-01-13 09:46:52	&xellos	ถ้า address ของ array1 อยู่ที่ 0x400000, specutive execution ก็จะถึงข้อมูลที่ address 0x401000 มาคูณกับ 256
+2018-01-13 09:50:54	&xellos	สมมติว่า address ของ array2 อยู่ที่ 0x500000 และค่าที่ address 0x401000 คือ 0x61 ('a')
+2018-01-13 09:52:04	&xellos	memory address 0x500000 + (0x61*0x100) = 0x506100 ก็จะถูกโหลด
+2018-01-13 09:54:03	&xellos	และเมื่อได้ค่า array1_size จะเห็นว่า condition นี้เป็น false คำสั่งที่ทำล่วงหน้าไว้ ก็จะยกเลิก
+2018-01-13 09:56:15	&xellos	ดังนั้นถ้า attacker สามารถหลอกให้ speculation predict ว่า condition นี้เป็น true แล้วใส่ค่า x เป็นค่าที่มากกว่า array1_size
+2018-01-13 09:57:41	&xellos	และสามารถที่จะทำการ clflush cache ของ array2 ได้ ตั้งแต่ 0x500000 ถึง 0x500000+(256*256) = 0x510000
+2018-01-13 09:58:23	&xellos	ส่วน speculation ก็จะ load memory address 0x506100 เข้ามาใน cache
+2018-01-13 10:00:32	&xellos	หลังจากนั้น attacker ก็เพียงแค่ลอง check ว่าดึงค่าจาก memory address ไหนใน 0x500000 - 0x510000 เป็นการดึงมาจาก cache โดยดูจากเวลาที่ใช้
+2018-01-13 10:04:07	&xellos	จะเห็นว่าจาก if condition โปรแกรมส่วน array1[x] สามารถ access memory ได้แค่ 0x400000 - 0x400010
+2018-01-13 10:05:17	&xellos	แต่ด้วย side channel attack ของ speculative execution ก็สามารถทำให้อ่านข้อมูล address ไหนก็ได้ด้วยค่า x
+2018-01-13 10:07:28	&xellos	ส่วนวิธีที่จะหลอก speculative ง่ายที่สุดคือ ให้เรียกส่วนนี้บ่อยๆ ให้ condition เป็นจริง คือใช้ x<16
+2018-01-13 10:08:30	&xellos	แล้วครั้งต่อไป ไม่ว่า x จะเป็นอะไร speculative ก็จะ predict ว่า true
+2018-01-13 10:11:05	&xellos	จะเห็นว่า variant นี้ attack ต้อง access memory array2 ได้ ซึ่งเป็น memory ในส่วนของ victim process
+2018-01-13 10:15:54	&xellos	ดังนั้น attack นี้ ที่ทำได้จริงตอนนี้ มีแค่พวกที่รับ code ไปรัน (อาจจะมีการใช้ JIT) เช่น javascript ใน browser, ebpf ใน linux kernel
+2018-01-13 10:16:49	&xellos	ในส่วนของ browser ก็ได้มีการทำ mitigation แล้วคือเอาส่วนที่ใช้วัดเวลาออก หรือไม่ก็ทำให้ accuracy น้อยลง
+2018-01-13 10:17:19	&xellos	ถ้าไม่สามารถ check ได้ว่า memory address ไหนอยู่ใน cache ก็ไม่สามารถ leak info ได้
+2018-01-13 10:18:35	&xellos	ส่วน poc ของ variant ก็มีอยู่ใน paper อยู่แล้ว
+2018-01-13 10:18:48	&xellos	และก็มีที่ copy ออกมาแปะใน internet ให้แล้ว
+2018-01-13 10:20:22	&xellos	ในส่วนของ patch ที่ intel แนะนำ ถ้าโปรแกรมนั้น สามารถโดน attack ได้ ก็คือใช้ lfence
+2018-01-13 10:20:45	&xellos	ก็เขียน code เป็น if (x < array1_size) { lfence; ... }
+2018-01-13 10:21:39	&xellos	lfence ก็คำสั่งให้ processor คอย read memory operation ทั้งหมดให้เสร็จก่อน แล้วค่อยทำคำสั่งต่อไป
+2018-01-13 10:21:45	&xellos	จบ spectre variant 1
