@@ -1,0 +1,157 @@
+10:17 PM  → &xellos (promoted to admin, opped) joined  
+10:41 PM <&xellos> คนน้อยดีแหะ
+10:42 PM <&xellos> มา in trend กับ poodle ซะหน่อย
+10:42 PM — &xellos in crypto mode
+10:43 PM <&xellos> เอาเนื้อๆ เลย attack ใช้ได้กับ SSLv3 เท่านั้น
+10:43 PM <&xellos> โดย default ไม่มี client หรือ server ใช้แล้ว แต่ยัง enable ไว้
+10:45 PM <&xellos> เวลา attack ต้อง downgrade protocol ดังนั้น attacker ต้อง intercept data ระหว่าง client กับ server ได้
+10:45 PM <&xellos> วิธี downgrade ข้ามเลยละกัน มาที่วิธี attack เพื่อที่จะ decrypt data
+10:47 PM <&xellos> attack นี้ใช้ได้เฉพาะเมื่อ encryption mode เป็นแบบ CBC
+10:48 PM <&xellos> เนื่องด้วย SSLv3 ทำ block padding ด้วยวิธีการใส่ length ในการ pad ที่ byte สุดท้าย byte เดียว
+10:48 PM <&xellos> byte อื่นที่ pad จะเป็นค่าอะไรก็ได้
+10:49 PM <@Longcat> *-*
+10:49 PM <&xellos> เช่น DES มี block size เป็น 8 bytes
+10:51 PM <&xellos> ถ้ามีข้อมูล 9 bytes ก็ต้อง pad ให้เป็น 16 bytes เผื่อที่จะแบ่งได้เป็น 2 block พอดี
+10:52 PM <&xellos> ก็จะใส่ data อะไรก็ได้ 6 bytes แล้วต่อด้วยค่า 6 อีก 1 byte เพื่อบอกว่า junk data มี 6 bytes
+10:52 PM <&xellos> กรณีที่เต็ม block พอดี เช่นข้อมูล 16 bytes
+10:53 PM <&xellos> ก็ต้อง pad อีกหนึ่ง block  junk data 7 bytes แล้วค่า 7 อีก 1 byte
+10:55 PM <@Longcat> ทันแว้ว ๆ อันนี้ padding ใน block cipher สินะ #คุ้นๆ
+10:55 PM <&xellos> จากรูป decryption ของ CBC mode http://upload.wikimedia.org/wikipedia/commons/2/2a/CBC_decryption.svg
+10:57 PM <&xellos> จะเห็นว่า P{i} = Decrypt(C{i}) xor C{i-1}
+10:58 PM <&xellos> padding ที่ใช้ใน TLS 1.x มันเป็นอีกแบบ เดี๋ยวค่อยพูดถึง
+10:58 PM <&xellos> ต่อๆ
+10:59 PM — @Longcat ไม่รู้ว่า SSL v1,2,3 + TLS x ต่างกันไง
+10:59 PM <&xellos> สมมติว่า attacker สามารถทำให้ข้อมูลมันเต็ม block พอดี ดังนั้นจะรู้ว่า byte สุดท้ายต้องเป็นค่า 7
+11:00 PM <&xellos> และเวลา decrypt 7 bytes จะเป็น junk data
+11:01 PM <&xellos> ถ้าเราแก้ cipher text block สุดท้าย ก็ขอแค่ให้ byte สุดท้าย decrypt ออกมาได้ค่า 7
+11:02 PM <&xellos> ฝั่งรับก็จะคิดว่า padding ถูกต้อง และข้อมูลที่ได้ก็ยังเหมือนเดิม
+11:03 PM <&xellos> เออ ลืม P{i} หมายถึง plaintext ของ block ที่ i
+11:03 PM <&xellos> C{i} คือ ciphertext ของ block ที่ i
+11:04 PM <@Longcat> [block 1 - A B C D E F G F][block 2 - J J J J J J J 7]
+11:04 PM <@Longcat> ทันแว้วครับ ต่อ ๆ
+11:05 PM <&xellos> ดังนั้น ใน https ถ้าเราหยิบ C{i} ที่ตรงกับ cookie พอดี มาแทน block สุดท้าย
+11:05 PM <&xellos> แล้วส่งไปให้ server ใหม่
+11:06 PM <+pe3z> ที่อ่านมารู้สึกโอกาสมันน้อยใช่ไหมครับ
+11:06 PM <&xellos> ถ้า server ok เราก็จะรู้ว่า block นี้ decrypt แล้วได้ byte สุดท้ายคือ 7
+11:07 PM <&xellos> หลังจากนั้นก็ใช้ xor ninja
+11:07 PM <&xellos> สมมติว่า T{i} = Decrypt(C{i})
+11:08 PM <@Longcat> หยิบ C{i} ที่ตรงกับ cookie นี้คือยังไงหว่า คือ block มัน encrypted cookie data ไว้?
+11:08 PM → n0c1tp3c3d joined (xh@2600TH-member-1ha.7tu.m54hib.IP)
+11:08 PM <&xellos> 7 = T{i}[7] ^ C{n-1}[7]
+11:09 PM <&xellos> T{i}[7] = C{n-1}[7] ^ 7
+11:09 PM <&xellos> P{i}[7] = T{i}[7] ^ p{i-1}[7]
+11:10 PM <&xellos> ใช้ [x] สำหรับ byte ที่ x เริ่มจาก 0..7
+11:10 PM <&xellos> ก็จะได้ plaintext ของ byte สุดท้ายมา
+11:11 PM <@Longcat> ไม่ค่อยเข้าใจ แ
+11:11 PM <&xellos> โอกาสที่จะได้แบบนี้คือ 1/256 เพราะว่า server เช็คแค่ byte สุดท้าย byte เดียว
+11:12 PM ⇐ d3c3pt1c0n quit (xh@2600TH-member-37p.8ha.m54hib.IP) Ping timeout: 121 seconds
+11:12 PM <@Longcat> แล้ว P{i}[7] มันเอาออกมาแบบนี้ได้โดยไม่ต้องใช้ key หรา *0*
+11:12 PM <&xellos> พูดง่ายๆ คือทำแบบนี้ 256 ครั้ง ควรที่จะ decrypt ออก 1 byte
+11:12 PM <&xellos> T{i} = Decrypt(C{i}) ไง
+11:13 PM <@Longcat> แล้วตอน decrypt() เราต้องรู้ key?
+11:13 PM <&xellos> เราไม่รู้ key
+11:13 PM <&xellos> เรารู้แต่ว่า decrypt ออกมาแล้ว server จะ xor กับอะไร
+11:14 PM <@Longcat> *0*
+11:15 PM <&xellos> ถ้าดูตามรูปของ CBC mode ก็จะเป็นผลลัพธ์ของ block cipher decryption
+11:16 PM <&xellos> ที่ยังไม่ได้ xor กับ ciphertext ของ block ก่อนหน้า
+11:17 PM <&xellos> หมายถึง T{i} นะ
+11:18 PM <+pe3z> xor ninja นี่คืออะไรหรอครับ
+11:18 PM <@Longcat> 7 = T{i}[7] ^ C{n-1}[7] <-- เพราะเรารู้ว่าถ้าเต็ม block แล้ว byte สุดท้ายจะเป็น 7
+11:18 PM <+pe3z> xor ธรรมดาแต่เรียกใหม่?
+11:18 PM <&xellos> xor ธรรมดานั้นแหละ
+11:18 PM <+pe3z> อ๋อ http://nerdoholic.org/uploads/dergln/beast_part2/ssl_jun21.pdf
+11:18 PM <&xellos> Longcat: ใช่
+11:19 PM <@Longcat> T{i}[7] = C{n-1}[7] ^ 7 <-- สลับตำแหน่งได้ xor (ninja!)
+11:19 PM <&xellos> เหลือบรรทัดเดียวเป็น P{i}[7] = C{n-1}[7] ^ 7 ^ P{i-1}[7]
+11:20 PM <&xellos> เข้าใจตรงนนี้กันแล้วนะ
+11:20 PM <@Longcat> เดี๋ยว ๆ ครัช 55
+11:20 PM <@Longcat> P{i}[7] = T{i}[7] ^ p{i-1}[7] <-- ยังไงนะ i-1 คือ block ก่อนหน้าปะงับ
+11:21 PM <&xellos> ใช่
+11:21 PM <@Longcat> งั้นแล้วเราก็ได้แต่ byte สุดท้ายปะหว่า
+11:21 PM <&xellos> CBC จะมี IV ให้มองเป็น ciphertext ของ block -1
+11:21 PM <@Longcat> แล้ว byte อื่นอ๊า
+11:21 PM <&xellos> ถ้าได้ byte อื่น server ก็ต้อง return อย่างอื่นที่ไม่ ok
+11:22 PM <@Longcat> ซึ่งเราก็จะ attack ไม่ได้ใช่ปะงับ
+11:22 PM <@Longcat> คือเราถอดได้แต่ byte สุดท้าย?
+11:22 PM <&xellos> ใช่ ได้แค่ byte สุดท้าย
+11:22 PM <&xellos> ต่อเลย เดี๋ยวรู้
+11:23 PM <@Longcat> ต่อครัช ๆ *0*
+11:23 PM <&xellos> ถ้ามาดูตอน encrypt ของ CBC mode
+11:23 PM <&xellos> http://upload.wikimedia.org/wikipedia/commons/8/80/CBC_encryption.svg
+11:24 PM <&xellos> จะเห็นว่า plaintext จะ xor กับ ciphertext ของ block ก่อนหน้า
+11:25 PM <@Longcat> yes sir
+11:25 PM <&xellos> ดังนั้นถ้า block ก่อนหน้าเปลี่ยน ciphertext ก็จะเปลี่ยน ถึงแม้ว่า plaintext จะเหมือนเดิม
+11:25 PM <&xellos> ดังนั้นถ้า IV เปลี่ยน encryption data ทั้ง chain มันก็จะเปลี่ยนหมด
+11:26 PM <@Longcat> cipher[i] = encrypt(plaintext[i] xor cipher[i-1]) with key #ใช่ปะหว่า
+11:26 PM <&xellos> ใช่
+11:27 PM <&xellos> เวลา attack ก็ให้ encrypt ข้อมูลทั้งก้อนไป (แต่ต้องให้ข้อมูลเป็น blocksize พอดี) แล้วเราหยิบ block i ที่เราสนใจไปเป็น padding (block สุดท้าย)
+11:28 PM <&xellos> ถ้า server fail ก็ให้ client ทำ encrypt ใหม่ กับข้อมูลเดิม
+11:28 PM <&xellos> ทำให้ IV ก็จะเปลี่ยน ผลเปลี่ยนหมด
+11:29 PM <&xellos> ทำอย่างงี้ไปเรื่อยๆ จนกว่า padding มันจะถูก
+11:29 PM <&xellos> โอกาสคือ 1 ใน 256
+11:30 PM <&xellos> คราวนี้มาดูกับ https
+11:30 PM <&xellos> สมมติว่า attacker สามารถ รัน javascript ให้ request ไปที่ target site ได้
+11:31 PM <&xellos> ก็จะสามารถ control ได้ว่าจะ request ไป page ไหนได้ และ body อะไร
+11:31 PM <@Longcat> อ่อ เราเลยหยิบ byte อืนมาทำ padding block นี้ได้
+11:32 PM <&xellos> ถ้าเราเปลี่ยนความยาวของ request page ตำแหน่งของ cookie ก็จะเปลี่ยน
+11:32 PM <&xellos> เพิ่ม 1 byte ก็ขยับไปทางขวา 1 byte
+11:33 PM <&xellos> ส่วน body ก็ทำหน้าที่ให้ขนาดข้อมูลมันเป็น block size พอดีได้
+11:34 PM <&xellos> attacker สามารถ control ตำแหน่งของ cookie ได้
+11:34 PM <&xellos> ถ้าเริ่มจาก decrypt byte สุดท้ายของ cookie
+11:34 PM <&xellos> ก็เพิ่ม request page ไป 1 ลด body size ไป 1
+11:34 PM <&xellos> แล้วก็ decrypt byte ต่อไปของ cookie ได้
+11:34 PM <@Longcat> *0* กว่าจะได้ครบทุก byte - -''
+11:34 PM <&xellos> ทำไปเรื่อยๆ ก็จะ decrypt ได้ทุก byte
+11:35 PM <&xellos> 1 byte ปกติทำ 256 ครั้งควรเจอ
+11:35 PM <&xellos> ก็ขึ้นอยู่กับความยาวของ cookie string ไง
+11:36 PM <@Longcat> แต่ attacker ก็จะต้องเดาตำแหน่งได้ด้วยว่า เพิ่ม/ลด byte แล้วมันจะเกินป่าว - -''
+11:36 PM → Codeerror joined (Codeerror@2600TH-member-l0l.9dt.65ufg4.IP)
+11:36 PM <@Longcat> ซึ่งเราไม่รู้ว่า browser เหยื่ออาจใส่ header อะไรไปบ้าง 55
+11:37 PM <&xellos> พวกนี้มันเป็น targeted attack
+11:37 PM <@Longcat> (eg. user-agent ยาวเท่าไร, DNT: 1)
+11:37 PM <@Longcat> yes sir
+11:37 PM <&xellos> เรา control request ได้
+11:38 PM <&xellos> ก็ request มาหาเราทีเดียวก็รู้แล้ว default header มีค่าอะไรบ้าง
+11:38 PM <@Longcat> แล้วเราจะเอา cookie ที่รีเศวสมาหาเราเอง (เราดักเองได้?) ทำไมอ่าครับ
+11:38 PM <&xellos> แล้วก็ต้องรู้อยู่แล้วว่า target site จะ return response หน้าตายังไง
+11:38 PM <&xellos> ตำแหน่งไหน
+11:39 PM <@Longcat> ถ้า target site อื่นมันติด SOP ไม่ส่งมาให้เรารึเปล่าหว่า
+11:39 PM <&xellos> request หาเรา ก็ได้แค่ user-agent, dnt, ... ไง
+11:39 PM <@Longcat> อ๋อ ๆ
+11:39 PM <&xellos> ก็ถามว่าจะรู้ขนาด byte กับตำแหน่ง cookie ไม่ใช่หรือ
+11:40 PM <@Longcat> อ่อ ๆ เข้าใจละงับ (y)
+11:40 PM <&xellos> จริงๆ ยังมีอีกอย่างที่ทำให้ attack นี้ work
+11:40 PM <@Longcat> ก่อนโจมตีก็ให้ รีเศวสมาหาเราก่อนจะได้ กะถูกว่าต้องใช้กี่ byte นั้นเอง แล้วค่อยรีเศวสไป site เป้าหมายจริง
+11:41 PM <&xellos> เพราะ SSL ใช้ mac-then-encrypt
+11:41 PM <&xellos> แบบนี้คือ คำนวณค่า MAC ของ plaintext แล้วต่อท้าย
+11:41 PM <&xellos> แล้วนำทั้งหมดมา encrypt
+11:42 PM <&xellos> MAC มันไม่ได้ตรวจสอบ encrypted data โดนแก้ไขหรือไม่
+11:43 PM <@Longcat> ตรวจไม่ใช่เหรองับ ไม่งั้นจะใช้ MAC ทะมายย
+11:43 PM <&xellos> มันตรวจแค่ plaintext ไง
+11:43 PM <&xellos> encrypt กับ mac มันมี 3 แบบ
+11:43 PM <@Longcat> อ่อ ถ้าจะตรวจ encrypted data ต้องคำนวณ MAC รอบ 2
+11:43 PM <&xellos> encrypt-and-mac แบบเลวร้ายสุด SSH ใช้
+11:44 PM <&xellos> mac-then-encrypt SSL ใช้
+11:44 PM <@Longcat> mac-then-encrypt-then-mac-then-encrypt-then-mac #ห๊ะ
+11:44 PM <&xellos> และก็ encrypt-then-mac  ipsec ใช้
+11:44 PM <&xellos> พวก vpn ใช้
+11:45 PM <&xellos> encrypt-then-mac คือ MAC หลังจาก encrypt ข้อมูลแล้ว
+11:45 PM <&xellos> ดังนั้น ถ้า encrypted data โดนแก้ไข ก็จะ detect ได้
+11:46 PM <@Longcat> ทำไมเค้าไม่ทำ encrypt-then-mac-then-encrypt อ่างับ #performancemattersสินะ
+11:46 PM <&xellos> ทำไปเพื่ออะไร
+11:46 PM <&xellos> MAC ไม่ใช่ secret
+11:46 PM <@Longcat> อืม.. นั้นสินะมันก็ตรวจ encrypt โดนแก้ไม่ได้เหมือน mac-then-encrypt 55
+11:47 PM <&xellos> ข้อมูลที่เป็น secret ก็โดน encrypt ไปแล้ว
+11:47 PM <&xellos> มาดู CBC padding ที่ปกติใช้กันในปัจจุบัน รวมถึง TLS1.x
+11:48 PM <&xellos> ก็คือ ถ้าจะ pad 8 bytes ก็ใส่ค่า 8 มันไปทั้ง 8 bytes
+11:48 PM <&xellos> pad 7 bytes ก็ใส่ค่า 7 ไปทั้ง 7 bytes
+11:49 PM <@Longcat> yes sir
+11:49 PM <&xellos> attack นี้ก็จะไม่ work เพราะโอกาสที่จะให้ padding ถูก กับ block size 8 byte คือ 2**64
+11:50 PM <&xellos> ปกติ block size ปัจจุบันคือ 16 bytes (128 bit)
+11:50 PM <&xellos> โอกาสถูกก็จะเหลือ 1/2**128
+11:50 PM <&xellos> จบ
+11:50 PM <&xellos> ที่เหลืออ่านภาษาอังกฤษกันเอง
+11:50 PM <&xellos> https://www.openssl.org/~bodo/ssl-poodle.pdf
+11:51 PM <@Longcat> *0* arigatou gozaisamu
+11:51 PM <&xellos> https://www.imperialviolet.org/2014/10/14/poodle.html
+11:52 PM <&xellos> biekeqi
