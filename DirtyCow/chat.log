@@ -1,0 +1,428 @@
+00:03 <&xellos> ขอ code ประกอบ
+00:03 <&xellos> อธิบายอย่างงี้ใครจะรู้เรื่อง
+00:03 <&xellos> มัน race ตรงไหนของ code
+00:05            <-- | nls [nls@pwnme-5ob.9oh.rq3nrn.IP] has quit (Ping timeout: 121 seconds)
+00:14 < Pistachio> พยายามทำ cross-gcc4 ลงไม่ได้ 
+00:14 < Pistachio> gg
+00:27 <&xellos> Pistachio: arch ไหน
+00:28 <&xellos> xelenonz: ทุกคนคอยฟังอยู่
+00:28              * | xellos ปูเสื่อนอนคอย
+00:28 <~xelenonz> กำ
+00:28 <~xelenonz> ไล่ยาวโคตร
+00:29 <&xellos> icheernoom bongtrop อยากฟัง xelenonz อธิบาย dirtycow มะ
+00:29 < icheernoom> อยากงับ แฮ่
+00:29 < bongtrop> รอนานแล้ว
+00:29 < bongtrop> น่อนมันแต่ทำอย่างอื่น
+00:29 < icheernoom> น่อนคืออัลไล ๕๕
+00:29 < icheernoom> อ่อ ซีน่อน
+00:30 <~xelenonz> - -
+00:35 <~xelenonz> มันเริ่มจาก http://lxr.free-electrons.com/source/mm/gup.c#L577
+00:39 <~xelenonz> follow_page_mask ไปเชคต่อที่ follow_page_pte สำหรับ FOLL_WRITE กับ pte_write(pte)
+00:39 <~xelenonz> ตรง http://lxr.free-electrons.com/source/mm/gup.c#L98
+00:40 <~xelenonz> return NULL - -a
+00:40 <&xellos> ทำไมถึง return NULL อะ
+00:40 <&xellos> คือทำอะไร ถึง return null
+00:41 <~xelenonz> น่าจะเชค operation write กับ page_is_writable 
+00:43 <~xelenonz> follow_page_mask => return follow_page_pte(..) => NULL 
+00:43 <&xellos> ต่อๆ
+00:43 <~xelenonz> 577                 page = follow_page_mask(vma, start, foll_flags, &page_mask);
+00:43 <~xelenonz> 578                 if (!page) {
+00:43 <~xelenonz> 579                         int ret;
+00:43 <~xelenonz> 580                         ret = faultin_page(tsk, vma, start, &foll_flags,
+00:43 <~xelenonz> กลายเป็นเข้า if(!page)
+00:43 <~xelenonz> call faultin_page ปะหว่า
+00:45 <~xelenonz> 361-379 น่าจะ set flag operable ที่ทำให้ pagefault
+00:45 <~xelenonz> 368         if (*flags & FOLL_WRITE)
+00:45 <~xelenonz> 369                 fault_flags |= FAULT_FLAG_WRITE;
+00:46 <~xelenonz> แล้วก้มาcall handle_mm_fault
+00:46 <~xelenonz> 381         ret = handle_mm_fault(vma, address, fault_flags);
+00:48 <&xellos> แล้วก็เข้าไปใน __handle_mm_fault
+00:48 <&xellos> http://lxr.free-electrons.com/source/mm/memory.c#L3566 แล้วไงต่อ
+00:48 <~xelenonz> check page ที่ fault คือ hugetlbfs
+00:48 <~xelenonz> 3644         if (unlikely(is_vm_hugetlb_page(vma)))
+00:48 <~xelenonz> 3645                 ret = hugetlb_fault(vma->vm_mm, vma, address, flags);
+00:48 <~xelenonz> 3646         else
+00:48 <~xelenonz> 3647                 ret = __handle_mm_fault(vma, address, flags);
+00:49 <~xelenonz> เข้า handle_mm_fault ไปเชคว่า fault page level ระดับไหน (น่าจะมี 4 level of page)
+00:50 <~xelenonz> เข้า 3610         return handle_pte_fault(&fe);
+00:51 <&xellos> มี 4 level แต่ใช้กี่ level แล้วแต่ arch https://lwn.net/Articles/117749/
+00:53 <~xelenonz> เข้า handle_pte_fault ส่งค่าเป็น fault environmen (fe)
+00:55 <~xelenonz> เซค fe->pte ตรง
+00:55 <~xelenonz> 3500                 fe->pte = pte_offset_map(fe->pmd, fe->address);
+00:55 <~xelenonz> 3501 
+00:55 <~xelenonz> 3502                 entry = *fe->pte;
+00:58              * | Pistachio ปูเสื่อ
+00:58 < Pistachio> xellos ของ 18 arch เลย แบบ seccon แต่ไม่อยากลง 2 vm
+00:58              * | bongtrop wait
+00:59 <~xelenonz> ...
+00:59 <&xellos> ก็เอา vm ของ seccon ไปใช้ดิ vm เดี่ยว
+01:01 < Pistachio> เห็นมันเป็น freebsd เวอรชั่นเก่า
+01:02 <&xellos> เป็น centos ต่างหาก
+01:04 <&xellos> ใน ubuntu หรือ centos เอง มันไม่มี package สำหรับ cross compile เยอะอย่างนี้นะ
+01:04 < Pistachio> อ่าวกำ เห็นปี 2013 ชื่อไฟล์เป็นแบบนี้ FreeBSD-seccon-babel.ova 
+01:04 <&xellos> หลายๆ arch มันต้องหาแล้วลงเอง
+01:04 <&xellos> แล้วยังต้องมาหา emulator อีก
+01:04 <&xellos> เอา vm ของ seccon มาใช้ง่ายกว่า
+01:05 < Pistachio> ;-; งั้นใช้ของ seccon ละ
+01:05 <&xellos> ใช้ vmware, vbox, qemu ได้หมด
+01:05 <&xellos> xelenonz: ต่อๆ
+01:06 < bongtrop> xelenonz: ต่อจิ
+01:06 <&xellos> Pistachio: อธิบายต่อได้มั้ย
+01:06 <~xelenonz> - -a จำไม่ได้ละว่า fe->pte set เป็น NULL ตอนไหน
+01:07              * | Pistachio ยังไม่ได้ดู dirty cow เลยตอนนี้ OS อ่านยังไม่ถึง copy on write แต่ใกล้ละ
+01:07 <~xelenonz> จำได้ว่ามันเข้า do_fault() ไป do_cow_fault()
+01:07 <~xelenonz> - -a
+01:08 <&xellos> สมมติว่า เข้า do_fault() แล้วไงต่อ
+01:09 <&xellos> นี่คือ debug แล้ว backtrace ดูหรอ
+01:12 <~xelenonz> ไม่ได้ debug อ่า นั่งกด function ตาม http://lxr.free-electrons.com/
+01:14 <~xelenonz> do_fault check 
+01:14 <~xelenonz> vma->vm_ops->fault (mapping fault?)
+01:14 <~xelenonz> if (!(fe->flags & FAULT_FLAG_WRITE)) (read fault?)
+01:14 <~xelenonz> if (!(vma->vm_flags & VM_SHARED)) (not share fault)
+01:16 <~xelenonz> ตอน mmap MAP_PRIVATE มันบอก      MAP_PRIVATE       Modifications are private (copy-on-write).
+01:21            --> | pe3zx [pe3z@pwnme-mfv.8c5.g4impb.IP] has joined #2600
+01:22 <~xelenonz> ใน do_cow_fault มันไป set page info อันใหม่ตรง 
+01:22 <~xelenonz> 3221         ret = __do_fault(fe, pgoff, new_page, &fault_page, &fault_entry);
+01:22 <~xelenonz> ปะหว่า
+01:23 <~xelenonz> แล้วก้ alloc ตรง
+01:23 <~xelenonz> 3229         ret |= alloc_set_pte(fe, memcg, new_page);
+01:23            <-- | [ghost]63049 [pe3z@pwnme-mfv.8c5.g4impb.IP] has quit (Ping timeout: 121 seconds)
+01:24 <~xelenonz> แล้วใน alloc_set_pte ก้ set write ตรง
+01:24 <~xelenonz> 3002         bool write = fe->flags & FAULT_FLAG_WRITE;
+01:24            <-- | icheernoom [icheernoom@pwnme-mfv.8c5.g4impb.IP] has quit (Ping timeout: 121 seconds)
+01:24 <~xelenonz> 3028         if (write)
+01:24 <~xelenonz> 3029                 entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+01:25 <~xelenonz> page เป็น writable + dirtybit 
+01:26 <~xelenonz> ทำ page เป็น anonymous
+01:26 <~xelenonz> 3031         if (write && !(vma->vm_flags & VM_SHARED)) {
+01:26 <~xelenonz> 3032                 inc_mm_counter_fast(vma->vm_mm, MM_ANONPAGES);
+01:26 <~xelenonz> 3033                 page_add_new_anon_rmap(page, vma, fe->address, false);
+01:26 <~xelenonz> 3034                 mem_cgroup_commit_charge(page, memcg, false, false);
+01:26 <~xelenonz> 3035                 lru_cache_add_active_or_unevictable(page, vma);
+01:29 <~xelenonz> แล้ว map page ่ใช้ set_pte_at(vma->vm_mm, fe->address, fe->pte, entry); ปะหว่า
+01:35 <~xelenonz> แล้วก้ return 0 ยาวกลับมาตรง 
+01:35 <~xelenonz> 580                         ret = faultin_page(tsk, vma, start, &foll_flags,
+01:35 <~xelenonz> 581                                         nonblocking);
+01:35 <~xelenonz> 582                         switch (ret) {
+01:35 <~xelenonz> 583                         case 0:
+01:36 <~xelenonz> 584                                 goto retry;
+01:36 <~xelenonz> คราวนี้ลอง write อีกรอบที่ page ที่เพิ่ง set writable+dirty
+01:37            --> | icheernoom [icheernoom@pwnme-mfv.8c5.g4impb.IP] has joined #2600
+01:38 <&xellos> ลอง write ตรงไฟน
+01:38 <&xellos> ไหน
+01:39 <~xelenonz> ไม่ใช้ write สิมันลองเชค writable
+01:41 <~xelenonz> เหมือนมัน swap เอา page ที่ non-write มาเป็น anon page เลอ
+01:42 <~xelenonz> ตรง set_pte_at ไม่ชัวร์ว่ามัน commit page anon แทนเลยปะหว่า
+01:42 <~xelenonz> - -a
+01:45 <&xellos> แล้วมัน race ตรงไหน
+01:45 <&xellos> ใครไม่เข้าใจ ยกมือขึ้น
+01:49              * | bongtrop 
+01:49 <~xelenonz> ._.
+01:52 < bongtrop> ไม่เข้าใจแต่รู้ว่ามันเป็นยังไงละ
+01:52            --> | spello [spello@pwnme-i9s.cb2.porpjs.IP] has joined #2600
+01:52 <&xellos> ไปกินข้าวก่อน
+01:52 < bongtrop> เดียวไปลองเล่นเอง
+01:52 <&xellos> อธิบายไปนะ ถ้าอธิบายไม่ไหวแล้ว จะพอก็ได้นะ
+01:53 <&xellos> เดี๋ยวจะมาอธิบายแทนให้
+01:53 <~xelenonz> อธิบายต่่อเลยยย
+01:53            <-- | bongtrop [bongtrop@pwnme-o3i.7ms.v9j6nv.IP] has quit (Quit: WeeChat 1.4)
+01:54              * | xellos นั่งไล่ code ที่เกี่ยวกับ bug ครบเมื่อคืน ยังสงสัยอยู่อีกเรื่องหนึ่ง
+01:54 <&xellos> xelenonz: ฝึกอธิบายไปก่อน
+01:54 <~xelenonz> ._."
+01:55 <~xelenonz> code อย่างลึก นึกว่า futex
+01:55 <~xelenonz> xellos มาสอน kernel internal ก๊อนนน
+01:56            --> | bongtrop [bongtrop@pwnme-o3i.7ms.v9j6nv.IP] has joined #2600
+01:56            --- | bongtrop is now known as [ghost]68185
+01:58            --- | [ghost]68185 is now known as bongtrop
+02:49 <&xellos> https://github.com/dirtycow/dirtycow.github.io/wiki/VulnerabilityDetails <== อันนี้ก็มีข้อมูลเยอะนะ
+02:50 <&xellos> จริงๆ bug summary มันอยู่ใน commit message ตั้งแต่ปี 2005 4ceb5db9757aaeadcf8fbbf97d76bd42aa4df0d6
+02:50            <-- | pe3zx [pe3z@pwnme-mfv.8c5.g4impb.IP] has quit (Ping timeout: 121 seconds)
+02:51 <&xellos> There's no real guarantee that handle_mm_fault() will always be able to
+02:51 <&xellos>     break a COW situation - if an update from another thread ends up
+02:51 <&xellos>     modifying the page table some way, handle_mm_fault() may end up
+02:51 <&xellos>     requiring us to re-try the operation.
+02:52 <&xellos> That's normally fine, but get_user_pages() ended up re-trying it as a
+02:52 <&xellos>     read, and thus a write access could in theory end up losing the dirty
+02:52 <&xellos>     bit or be done on a page that had not been properly COW'ed.
+02:52 <&xellos> อธิบายจบแล้ว
+02:54            <-- | icheernoom [icheernoom@pwnme-mfv.8c5.g4impb.IP] has quit (Ping timeout: 121 seconds)
+02:56            --> | icheernoom [icheernoom@pwnme-mfv.8c5.g4impb.IP] has joined #2600
+02:57 <~xelenonz> =[]=
+02:58 < bongtrop> ..
+03:00 <&xellos> http://www.cs.columbia.edu/~krj/os/lectures/L17-LinuxPaging.pdf
+03:00 <&xellos> เอานี้ไปดูก่อน
+03:00 <&xellos> รู้จัก virtual memory กับ physical memory กันยัง
+03:03 <~xelenonz> รู้ประมาณ 10% จาก pwnable.kr softmmu
+03:03 <~xelenonz> - -a
+03:07 <&xellos> softmmu จริงๆ ไม่ต้องรู้เรื่องพวกนี้เลย
+03:19            <-- | icheernoom [icheernoom@pwnme-mfv.8c5.g4impb.IP] has quit (Ping timeout: 121 seconds)
+03:21            --> | pe3zx [pe3z@pwnme-mfv.8c5.g4impb.IP] has joined #2600
+03:25 < Pistachio> กำลังอ่านเลย
+03:25 < Pistachio> แต่เป็นหนังสือไดโนเสาร์
+03:25 < Pistachio> ไม่มีโค้ด 55
+03:29            <-- | pe3zx [pe3z@pwnme-mfv.8c5.g4impb.IP] has quit (Ping timeout: 121 seconds)
+03:31            --> | icheernoom [icheernoom@pwnme-mfv.8c5.g4impb.IP] has joined #2600
+03:32            --> | pe3zx [pe3z@pwnme-d5u.pa2.i4tm1j.IP] has joined #2600
+03:37            <-- | pe3zx [pe3z@pwnme-d5u.pa2.i4tm1j.IP] has quit (Quit: WeeChat 1.4)
+03:43            --> | pe3zx [pe3z@pwnme-d5u.pa2.i4tm1j.IP] has joined #2600
+03:52            <-- | d3c3pt1c0n [q@pwnme-r94.crk.lspish.IP] has quit (Quit: Leaving)
+03:56 <&xellos> โอเค อธิบายแค่ให้พอเข้าใจ dirty cow
+03:57 <&xellos> virtual memory คือส่วนที่ kernel สร้างขึ้นมาให้กับ user process
+03:58 <&xellos> ที่เราเห็นใน /proc/pid/maps หรือเวลาเรา debug ด้วย gdb  memory address พวกนี้ คือ virtual memory
+03:59 <&xellos> โดยเวลาจะ read/write memory  kernel จะทำหน้า map virtual memory address (vma) เป็น physical address
+04:00 <&xellos> physical memory คือที่เราเก็บข้อมูลจริงๆ ซึ่งก็คือ RAM
+04:01 <&xellos> โดยเวลาแปลงจาก virtual memory address เป็น physical address   kernel ก็จะใช้ pgd,pud,pmd,pte ในการ lookup
+04:02 <&xellos> สำหรับ dirtycow bug เราไม่ต้องสนใจว่า pgd,pud,pmd คืออะไร
+04:03 <&xellos> ถ้าอยากรู้ก็ https://www.kernel.org/doc/gorman/html/understand/understand006.html
+04:03 < icheernoom> o_O
+04:04 <&xellos> ส่วน Page Table Entry (PTE) อันนี้จะเก็บว่า physical memory ที่เก็บ data จริงคือตรงไหน
+04:04 <&xellos> รวมทั้งเก็บ flag ต่างๆ ด้วย
+04:06 <&xellos> ดู flag ได้ใน Table 3.1 ของ link ข้างบน
+04:07 <&xellos> ใน doc ที่ให้มันเก่าแล้ว จริงๆ ตอนนี้มีมากกว่านี้
+04:09 <&xellos> จบ virtual memory กับ physical memory
+04:15 < Pistachio> *0*
+04:16 < icheernoom> +1
+04:18 <&xellos> ต่อเรื่อง dirtycow bug
+04:18 <&xellos> เริ่มจากการเขียน data ไปใน memory ในส่วนที่เป็น read only ละกัน
+04:19 <&xellos> เอาแบบใช้ PTRACE_POKETEXT
+04:20 <&xellos> ถ้าไล่ใน kernel code จาก syscall ptrace จะเห็น function POKETEXT หรือ POKEDATA ที่ http://lxr.free-electrons.com/source/kernel/ptrace.c?v=4.4#L1107
+04:22 <&xellos> ก็คือเรียก access_process_vm() -> __access_remote_vm() เพื่อเขียน data ลงใน memory
+04:23 <&xellos> ก็คือ get_user_pages ที่ http://lxr.free-electrons.com/source/mm/memory.c#L3867
+04:23 <&xellos> แล้วก็ที่บรรทัด 3895 เขียนข้อมูลลงใน memory  copy_to_user_page(vma, page, addr,
+04:26 <&xellos> ไล่ call ก็จะเป็น get_user_pages_remote() => __get_user_pages_locked() => __get_user_pages()
+04:27 <&xellos> ถ้าดูใน __access_remote_vm() จะเห็นว่ามัน access ด้วย write, force และมี pages
+04:27 <&xellos> ดังนั้นใน __get_user_pages_locked() จะ set flag เป็น FOLL_GET | FOLL_WRITE | FOLL_FORCE
+04:29 <&xellos> เข้าไปใน __get_user_pages()  http://lxr.free-electrons.com/source/mm/gup.c#L519
+04:30 <&xellos> ข้ามมาที่ retry: ตรงบรรทัด 569 ได้เลย ข้างบนเป็นแค่ check ค่า
+04:31 <&xellos> ส่วนสำคัญใน __get_user_pages() มีอยู่ 2 function คือ
+04:31 <&xellos> 577                 page = follow_page_mask(vma, start, foll_flags, &page_mask);
+04:31 <&xellos> 580                         ret = faultin_page(tsk, vma, start, &foll_flags,
+04:33 <&xellos> follow_page_mask() คือรับ virtual memory address แล้ว return physical memory page มาให้ ถ้า page นั้นอยู่ใน RAM แล้ว
+04:34 <&xellos> ลืมบอกว่า linux จะเป็น physical memory เป็น block ซึ่งเรียกว่า page โดยมีขนาด 4KB
+04:36 <&xellos> และ virtual memory ที่ user process ใช้อ้างอิง ไม่จำเป็นต้องมี physical memory page ที่ใช้ในการอ้างอิงในเวลาที่จะ access
+04:37 <&xellos> เช่น memory page นั้นโดน swap out ไปใน swap ของ hdd หรือพวก file mapping ที่ file content ยังไม่ได้ load เข้า memory
+04:38 <&xellos> เวลาที่ไม่มี physical memory page ที่มีข้อมูลที่ต้องการแบบนี้ จะเรียกว่า page fault แล้ว follow_page_mask() จะ return NULL
+04:39 <&xellos> พอ page fault  kernel ก็ต้องพยายามที่จะ load ข้อมูลที่ต้องการจะ access เข้าไปใน RAM แล้ว map virtual memory กับ physical memory page ใหม่
+04:39 <&xellos> ซึ่งทำให้ faultin_page()
+04:40 <&xellos> ถึงตรงนี้ มีใครงงบ้าง
+04:41 <&xellos> พักแป๊บ เดี๋ยวค่อยกลับมาดู code ใน follow_page_mask() กับ faultin_page() ต่อ
+04:45 < bongtrop> ไม่งง
+04:51 <~xelenonz> *_*
+04:54 < bongtrop> !help
+04:56            --- | ChanServ sets modes [#2600 +o bongtrop]
+04:56            --- | ChanServ sets modes [#2600 +o Pistachio]
+04:56 <~xelenonz> ...
+04:57 <@bongtrop> hi spello
+04:57 < icheernoom> *0*
+04:58 <@bongtrop> ใครอะ
+04:58            --- | ChanServ sets modes [#2600 +o icheernoom]
+05:00 <&xellos> ต่อๆ
+05:01 <&xellos> เริ่มที่ follow_page_mask()
+05:01 <&xellos> สมมติ ไม่มี huge page เพราะมันไม่เกี่ยวกับ bug
+05:03 <@Pistachio> ไม่งง ตอบทันไหมหว่า 555
+05:03 <~xelenonz> ...
+05:03            --- | ChanServ sets modes [#2600 -o Pistachio]
+05:03            --- | ChanServ sets modes [#2600 +v Pistachio]
+05:03 <&xellos> ใน follow_page_mask() ก็คือ lookup pgd, pud, pmd ไปเรื่อย แล้วเรียก follow_page_pte() ถ้า pgd, pud, pmd, pte มีการสร้างไว้แล้ว
+05:04 <&xellos> ถ้าเกิดตอน lookup ไม่มี pgd, pud, pmd, pte สำหรับ vma ที่จะหา ก็ถือว่า page fault หมด
+05:07 <&xellos> ใน follow_page_pte() ส่วน check ที่สำคัญก็คือ http://lxr.free-electrons.com/source/mm/gup.c#L98
+05:07 <&xellos> เป็นจุดที่โดน patch ด้วย https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=19be0eaffa3ac7d8eb6784ad9bdbc7d67ed8e619
+05:09 <&xellos> ตรงนี้ก่อนแก้คือ check  flag & FOLL_WRITE <== เรา request เพื่อที่จะ WRITE data
+05:09 <&xellos> และ !pte_write(pte) <== memory page นี้ writable หรือเปล่า
+05:10 <&xellos> คือถ้าจะเขียนใน memory page ที่ pte flag บอกว่าเขียนไม่ได้ ก็จะ return NULL ให้เป็น page fault ด้วย
+05:12 <&xellos> ที่เหลือใน follow_page_pte() ก็จะเป็นการ check ค่าอื่นๆ ไม่เกี่ยวกับ bug
+05:12            --> | JorGeon [df181e84@pwnme-obq.rha.sniiap.IP] has joined #2600
+05:14 <&xellos> ตอนนี้คือ ถ้าเราจะเขียนใน memory ที่ pte บอกเป็น read only  follow_page_mask() ก็จะ return null เป็น page fault
+05:14 <&xellos> แล้วก็จะเข้า faultin_page()
+05:14 <&xellos> http://lxr.free-electrons.com/source/mm/gup.c#L354
+05:15 <&xellos> จาก flag ตอนแรกที่มี FOLL_WRITE ใน faultin_page จะ set fault_flags FAULT_FLAG_WRITE ที่บรรทัด  368ม369
+05:16 <&xellos> 368,369
+05:16 <&xellos> แล้วก็เข้าไปที่ handle_mm_fault()
+05:17            <-- | JorGeon [df181e84@pwnme-obq.rha.sniiap.IP] has quit (Quit: http://www.kiwiirc.com/ - A hand crafted IRC client)
+05:17            --> | JorGeon [df1818a4@pwnme-obq.rha.sniiap.IP] has joined #2600
+05:17 <&xellos> code จะมาอยู่ในไฟล์ memory.c แล้วก็เข้าไปใน __handle_mm_fault() http://lxr.free-electrons.com/source/mm/memory.c#L3560
+05:19 <&xellos> แล้วก็ทำพวก pgd,pud,pmd จนไปถึง handle_pte_fault()
+05:20 <&xellos> ใน handle_pte_fault() จริงๆ มี 2 case นะ คือแบบ page ไม่อยู่ใน memory เลย กับ page ตอนนี้เป็น read only แล้วเราต้องการ write
+05:21 <&xellos> ถ้าไม่มี pte ก็จะเข้าไปใน if ของ 3519 ซึ่งในกรณีของเราคือ map file ก็จะทำ do_fault() ที่บรรทัด 3523
+05:22 <&xellos> ที่เห็น anonymous อะ ให้ดู man mmap ได้
+05:22 <&xellos> MAP_ANONYMOUS  The mapping is not backed by any file; its contents are initialized to zero.
+05:22 <&xellos> แบบนี้ ไม่มีประโยชน์สำหรับ exploit
+05:24 <&xellos> ถ้าเป็นกรณีที่ pte มี page ที่มี data อยู่แล้ว แต่เป็น read only ก็จะไปใน if ของบรรทัด 3536
+05:24 <&xellos> 3536         if (fe->flags & FAULT_FLAG_WRITE) {
+05:24 <&xellos> 3537                 if (!pte_write(entry))
+05:24 <&xellos> 3538                         return do_wp_page(fe, entry);
+05:25 <&xellos> ตรงนี้ page fault เพราะ flag write แล้วก็ pte บอกว่าเขียนไม่ได้ก็เข้าไปทำที่ do_wp_page()
+05:27 <&xellos> ในส่วนของ do_fault() อย่างที่ xelenonz ไล่ให้ก็จะไปที่ do_cow_fault()
+05:28 <&xellos> แล้วทำ __do_fault() เพื่อ load page และก็สร้าง pte สำหรับ page ใหม่
+05:28 <&xellos> ซึ่งถ้าเขียนก็จะทำบรรทัด 3029
+05:28 <&xellos> 3029                 entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+05:29 <&xellos> ส่วน do_wp_page() http://lxr.free-electrons.com/source/mm/memory.c#L2359
+05:30 <&xellos> จะทำต่างกันคือสร้างอีก page หนึ่งขึ้นมา แล้ว copy data มา page ใหม่ แล้วทำบรรทัด 2188
+05:30 <&xellos> 2188                 entry = maybe_mkwrite(pte_mkdirty(entry), vma);
+05:31 <&xellos> เหมือน do_cow_fault()
+05:32            --> | pp2 [userpp@pwnme-vi5.d6k.pdlrnu.IP] has joined #2600
+05:32 <&xellos> จริงๆ แต่ละ function ทำอะไรดูได้ที่ comment บนหัว function
+05:33            <-- | JorGeon [df1818a4@pwnme-obq.rha.sniiap.IP] has quit (Quit: http://www.kiwiirc.com/ - A hand crafted IRC client)
+05:34 <&xellos> do_cow_fault() หรือ do_wp_page() ไม่ว่าจะเข้าอันไหน ret value จะมีการ set VM_FAULT_WRITE
+05:35 <&xellos> return กลับที่ faultin_page http://lxr.free-electrons.com/source/mm/gup.c#L381
+05:35            <-- | pp [userpp@pwnme-601.no2.nsip2j.IP] has quit (Ping timeout: 121 seconds)
+05:35 <&xellos> แล้วมันจะไปทำที่บรรทัด 414, 415
+05:36 <&xellos> ลืมบอก ในส่วนของ vma ก็จะมี permission เหมือนกัน ตาม /proc/pid/maps
+05:37 <&xellos> ซึ่งเรา target กรณีที่เป็น read only ทำให้ code เข้าไปที่บรรทัด 415 ด้วย
+05:37 <&xellos> โดยการเอา flag FOLL_WRITE ออก
+05:39 <&xellos> อ่าน comment บน if ดีๆ
+05:39 <&xellos> The VM_FAULT_WRITE bit tells us that do_wp_page has broken COW when necessary, even if "maybe_mkwrite decided not to set pte_write".
+05:39 <&xellos> irc มันทำตัวหนา สี ยังไงหว่า
+05:40 <&xellos> maybe_mkwrite decided not to set pte_write
+05:40 <&xellos> เอามาแปะอีกรอบก็ได้
+05:40 <@bongtrop> <b>kidding</b>
+05:41 <~xelenonz> ...
+05:41 <~xelenonz> _test_
+05:41 <~xelenonz> นี่ underscore
+05:41 <~xelenonz> lul
+05:41 <@icheernoom> ;A;
+05:41 <@bongtrop> ** test2
+05:41 <&xellos> http://lxr.free-electrons.com/source/include/linux/mm.h#L615
+05:41 <@bongtrop> ใหญ่กว่า
+05:42 <~xelenonz> LULULULULUL
+05:42 <&xellos> ถ้าเรามาดู maybe_mkwrite() จะเห็นว่า ถ้า vma บอกเป็น read only  pte จะไม่ set flag write
+05:43 <&xellos> ใน do_fault หรือ do_wp_page() ใช้ maybe_mkwrite() ไม่ได้ใช้ mkwrite()
+05:43 <&xellos> ดังนั้น จริงๆแล้ว ตอน exploit read only page  kernel ไม่ได้ set pte ให้เป็น writable
+05:44 <&xellos> แต่มีการ mark แค่ dirty เอาไว้
+05:44 <&xellos> ส่วน code เดิมที่เอา FOLL_WRITE ออก เพราะว่า follow_page_mask() ที่อธิบายข้างบน
+05:45 <&xellos>  98         if ((flags & FOLL_WRITE) && !pte_write(pte)) {
+05:46 <&xellos> ถ้าจะเอา write แต่ pte ไม่ให้ write ก็จะเกิด page fault อีก
+05:46 <&xellos> ดังนั้น code เลยเอา FOLL_WRITE ออก แล้วให้เป็น read access
+05:47 <&xellos> ถ้าไม่มีอะไรเกิดขึ้น ถึงแม้ว่าจะ follow_page_mask() ด้วย read access แต่จะได้ page ที่ mark ว่า dirty
+05:47 <&xellos> ถึงตรงนี้เข้าใจกันปะ
+05:47 <&xellos> ยังไม่งงนะ
+05:47 <&xellos> จะจบแล้ว
+05:47 <@bongtrop> ยัง
+05:48 <&xellos> คราวนี้มาดู madvise DONTNEED
+05:49 <&xellos> ลืม
+05:49 <~xelenonz> ...
+05:49 <~xelenonz> *GGWP*
+05:49 <@bongtrop> ตัวจบแบบนี้ก็ได้หรอ
+05:49 <&xellos> หัลงจากออกจาก faultin_page() แล้ว foll_flags จะโดนเปลี่ยน คือ write หาย
+05:50 <@icheernoom> *เข้าไม่ถึง*
+05:50 <&xellos> หมายถึงลืมอธิบาย หลังจาก faultin_page()
+05:50 <~xelenonz> อ่อ
+05:50 <@icheernoom> แง
+05:50 <@bongtrop> ห้าๆ
+05:50 <~xelenonz>  LUL
+05:50 <&xellos> แล้วมันจะไป retry อีกรอบที่ http://lxr.free-electrons.com/source/mm/gup.c#L569
+05:51 <&xellos> ก็จะทำ follow_page_mask() แบบ read access
+05:51 <&xellos> ตอนเรียก faultin_page จะเห็นว่า foll_flags pass by reference
+05:52 <@bongtrop> & สองรอบหรอ
+05:52 <&xellos> ก็จะได้ page ที่ mark dirty มาให้เราเขียนได้
+05:52 <&xellos> อะไรสองรอบ
+05:52 <@bongtrop> แปปเรียบเรียบแปป
+05:52 <@bongtrop> pause ก่อน
+05:53 <@bongtrop> *เรียง
+05:53 <&xellos> สรุปตรง retry: ใน __get_user_pages()
+05:53 <&xellos> คือ follow_page_mask() ด้วย flag write แต่ไม่มี pte หรือ pte เป็น read only
+05:54 <&xellos> ทำให้เข้า faultin_page() ซึ่งจะสร้าง page ใหม่ ที่ mark dirty bit ไว้ แต่เอา FOLL_WRITE ออกจาก foll_flags 
+05:55 <&xellos> แล้วก็ไปที่ retry เรียก follow_page_mask() อีกรอบแต่คราวนี้ไม่มี flag write ก็จะได้ page
+05:55 <&xellos> แล้วออกจาก __get_user_pages()
+05:55 <@bongtrop> เค
+05:56 <&xellos> ดู madvise DONTNEED ต่อ
+05:56 <&xellos> man madvise
+05:56 <@bongtrop> ลืม
+05:56 <~xelenonz> ...
+05:57 <&xellos> After a successful MADV_DONTNEED  operation,  the  semantics  of  memory  access  in  the specified region are changed: ...
+05:58 <&xellos> สรุปคือถ้าสั่งคำสั่งนี้ คือ free physical memory page นั้น
+05:58 <&xellos> https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=4ceb5db9757aaeadcf8fbbf97d76bd42aa4df0d6
+05:59 <&xellos> ตาม commit message ข้างบน "if an update from another thread ends up modifying the page table some way, handle_mm_fault() may end up equiring us to re-try the operation."
+06:00 <&xellos> คือหลังจาก faultin_page() ออกมาสร้าง dirty bit ให้แล้วเอา flag write ออก
+06:00 <~xelenonz> มัน free physmem ตรงไหนหว่า
+06:00 <&xellos> ก่อนจะเรียก follow_page_mask()
+06:00 <&xellos> แล้ว madvise DONTNEED ให้ free page นั้นทิ้ง เกิดอะไรขึ้น
+06:00 <~xelenonz> pte = 0?
+06:01 <&xellos> yep
+06:01 <&xellos> follw_page_mask return NULL again
+06:01 <&xellos> แต่ FOLL_WRITE หายไปแล้ว
+06:01 <&xellos> คราวนี้ faultin_page() คิดว่าเราจะ access เพื่อ read อย่างเดียว
+06:03 <&xellos> ทำให้ kernel share page เดียวกับ data จริง
+06:03 <&xellos> ทำให้ได้ page ที่เป็น data จริงๆ
+06:03 <&xellos> GG
+06:04 <~xelenonz> GG
+06:04 <~xelenonz> WP
+06:04 <&xellos> เข้าใจกันใช่ปะ
+06:05 <&xellos> ส่วน fix ก็น่าจะอ่านกันเข้าใจนะ
+06:06 <&xellos> ก็แค่ไม่เอา FOLL_WRITE ออก หลัง CoW แล้วใช้วิธี check ว่าทำ CoW อยู่
+06:07 <&xellos> จริงๆ ลืมอธิบาย Copy on Write เลยว่าคืออะไร
+06:07 <&xellos> แต่น่าจะรู้กันอยู่แล้ว
+06:10 <~xelenonz> ตอนแรกเข้าใจว่า มัน pagefault เลย copy page RO ไป map VirtAddr ใหม่เพื่อ write แล้วเจอ madvise free physpage ใหม่มันเลยมา write ที่ page ที่เป็น RO
+06:10 <~xelenonz> OTL
+06:11 <&xellos> ตอนนี้ xelenonz เข้าใจแล้ว
+06:11 <&xellos> ใครสงสัย หรืองงตรงไหน ถาม xelenonz ได้เลย
+06:11 <~xelenonz> ...
+06:11 <@bongtrop> ถามอยู่เลย
+06:11 <@bongtrop> ไม่ยอมตอบอะ
+06:11 <~xelenonz> ยางงง
+06:11 <~xelenonz> แค่เห็นภาพประมาณเน้เฉยๆ
+06:15 <@bongtrop> เข้าใจแล้ววว
+06:15 <@bongtrop> โครตเจ๋ง
+06:17 <@bongtrop> ชาบู
+06:17 <~xelenonz> ชิ
+06:18 <@bongtrop> อธิบายได้หมดอะ
+06:18 <@bongtrop> ถามมาเลย
+06:18 <@bongtrop> แค่ import xelenonz
+06:18 <@bongtrop> คนเจอเจอไงรู้ป่าวครับ
+06:18 <~xelenonz> throw exception xellos
+06:19 <+Pistachio> try: import xelenonz
+06:19 <+Pistachio> except xellos: import xelenonz
+06:19 <~xelenonz> throw exception xellos
+06:19 <&xellos> throw exception Phil Oester
+06:20 <+Pistachio> do_xelenonz(): try: import xelenonz; except xellos: do_xelenonz()
+06:20 <+Pistachio> gg
+06:20 <@bongtrop> maybe_mkxelenonz()
+06:20 <~xelenonz> throw exception Phil Lobster
+06:21 <+Pistachio> throw exception Phil Crab
+06:21 <&xellos> "One of the sites I manage was compromised, and an exploit of this issue was uploaded and executed. A few years ago I started packet capturing all inbound HTTP traffic and was able to extract the exploit and test it out in a sandbox,"
+06:21            <-- | xelenonz has kicked Pistachio from #2600 (Kick Exception)
+06:21            --> | Pistachio [pistachio@pwnme-hj7.met.v9j6nv.IP] has joined #2600
+06:21 < Pistachio> gg
+06:21 <@bongtrop> hahahahah
+06:21 <@bongtrop> 5555555555555555
+06:21 <&xellos> lol
+06:22 < Pistachio> +o หายเลย
+06:22 < Pistachio> Zzzz
+06:22 <~xelenonz> bongtrop ไปเปิด server ให้โดน hack เร็ว
+06:23 <@bongtrop> จัดมา
+06:23 <~xelenonz> crypto.rop.sh
+06:23 <@bongtrop> ....
+06:23 <@bongtrop> เดียวหาเอาแถวนี้แหละ
+06:27            --- | ChanServ sets modes [#2600 +v Pistachio]
+06:34            <-- | dec [d4d22569@pwnme-obq.rha.sniiap.IP] has quit (Quit: http://www.kiwiirc.com/ - A hand crafted IRC client)
+06:40            <-- | xellos [xellos@pwnme-umv.l6i.bfdukm.IP] has quit (Quit: Leaving)
+06:55            --> | pe3zx_ [pe3z@pwnme-mfv.8c5.g4impb.IP] has joined #2600
+06:58            <-- | pe3zx [pe3z@pwnme-d5u.pa2.i4tm1j.IP] has quit (Ping timeout: 121 seconds)
+07:14            --> | icheernoomm [icheernoom@pwnme-sgu.0tn.9l9qjp.IP] has joined #2600
+07:14            --> | pe3zx__ [pe3z@pwnme-sgu.0tn.9l9qjp.IP] has joined #2600
+07:17            <-- | icheernoom [icheernoom@pwnme-mfv.8c5.g4impb.IP] has quit (Ping timeout: 121 seconds)
+07:17            <-- | pe3zx_ [pe3z@pwnme-mfv.8c5.g4impb.IP] has quit (Ping timeout: 121 seconds)
+07:42            <-- | pe3zx__ [pe3z@pwnme-sgu.0tn.9l9qjp.IP] has quit (Ping timeout: 121 seconds)
+08:17            --> | jorgeon [df1826c2@pwnme-s42.t6s.sniiap.IP] has joined #2600
+08:20            <-- | jorgeon [df1826c2@pwnme-s42.t6s.sniiap.IP] has quit (Quit: http://www.kiwiirc.com/ - A hand crafted IRC client)
+08:44            <-- | pp2 [userpp@pwnme-vi5.d6k.pdlrnu.IP] has quit (Ping timeout: 121 seconds)
+09:17            --> | xellos [xellos@pwnme-st9.3fn.hcij4b.IP] has joined #2600
+09:17            --- | ChanServ sets modes [#2600 +ao xellos xellos]
+09:32            <-- | icheernoomm [icheernoom@pwnme-sgu.0tn.9l9qjp.IP] has quit (Quit: Leaving)
+11:24            <-- | xellos [xellos@pwnme-st9.3fn.hcij4b.IP] has quit (Quit: Leaving)
+12:39            --> | pp [userpp@pwnme-hgk.1ds.4k352j.IP] has joined #2600
+13:23            --> | d3c3pt1c0n [q@pwnme-ufh.kk3.m54hib.IP] has joined #2600
+14:18            <-- | d3c3pt1c0n [q@pwnme-ufh.kk3.m54hib.IP] has quit (Quit: Leaving)
+14:30            --> | d3c3pt1c0n [q@pwnme-kj8.kk3.m54hib.IP] has joined #2600
+14:35            <-- | d3c3pt1c0n [q@pwnme-kj8.kk3.m54hib.IP] has quit (Ping timeout: 121 seconds)
+14:46            --> | d3c3pt1c0n [q@pwnme-3tb.abg.m54hib.IP] has joined #2600
+14:51            <-- | d3c3pt1c0n [q@pwnme-3tb.abg.m54hib.IP] has quit (Quit: Leaving)
+14:52            <-- | pp [userpp@pwnme-hgk.1ds.4k352j.IP] has quit (Ping timeout: 121 seconds)
+15:22            --> | d3c3pt1c0n [q@pwnme-kh1.t1i.u2akc9.IP] has joined #2600
+19:58            <-- | d3c3pt1c0n [q@pwnme-kh1.t1i.u2akc9.IP] has quit (Quit: Leaving)
+22:08            --> | pp [userpp@pwnme-601.no2.nsip2j.IP] has joined #2600
+22:17            --> | d3c3pt1c0n [q@pwnme-hnm.o4o.r8f595.IP] has joined #2600
+22:42            --> | xellos [xellos@pwnme-g00.l6i.bfdukm.IP] has joined #2600
+22:42            --- | ChanServ sets modes [#2600 +ao xellos xellos]
+22:42            --> | pe3zx__ [pe3z@pwnme-ppf.p9r.fbm66h.IP] has joined #2600
+22:49            <-- | pe3zx__ [pe3z@pwnme-ppf.p9r.fbm66h.IP] has quit (Ping timeout: 121 seconds)
