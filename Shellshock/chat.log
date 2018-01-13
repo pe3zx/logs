@@ -1,0 +1,186 @@
+2:26 PM <&xellos> เริ่มด้วยการไล่แขกก่อนดีกว่า
+2:27 PM <&xellos> อันนี้คือ patch สำหรับ bash 4.3
+2:27 PM <&xellos> http://git.savannah.gnu.org/cgit/bash.git/commit/?id=b64a0e1d0b412cedda763a32d6e5cd6927333f02
+2:28 PM <&xellos> call flow ไปหาส่วนสำคัญของ bug นี้คือ main() -> shell_initialize() -> initialize_shell_variables() -> parse_and_execute()
+2:29 PM <&xellos> main กับ shell_initialize ไม่มีอะไรสำคัญ
+2:29 PM <&xellos> initialize_shell_variables() อยู่ใน variables.c
+2:29 PM <&xellos> http://git.savannah.gnu.org/cgit/bash.git/tree/variables.c?id=1a1f8b54fb29c2af275253f35a7fcf79815222d5#n318
+2:30 PM <@Longcat> *-*
+2:30 PM <@Longcat> เช็คแพ่บตอนนี้ใช้เวอร์ไรหว่า
+2:30 PM <@Longcat> $ apt-cache show bash |grep Ver
+2:30 PM <@Longcat> Version: 4.3-7ubuntu1.1
+2:30 PM <@Longcat> Version: 4.3-6ubuntu1
+2:31 PM <@Longcat> xellos ลิ้งแรกเข้าไม่ได้อะ No repositories found
+2:31 PM <&xellos> เริ่่มต้นของ initialize_shell_variables() ก็คือส่วนที่เราต้องการดูเลย
+2:32 PM <&windows98SE> ตอนแรก เข้าได้อยุ่นะ - -''
+2:32 PM <icheernoom> ตอนแรกเข้าได้ lol
+2:32 PM <penguinarmy> ง่า
+2:32 PM <Exploites> ดีครับ เทพหนุ่ม เทพเล็ก ตาเอ
+2:33 PM <&xellos> คือ loop env แต่ละตัว
+2:33 PM <&xellos> หายไปซะงั้น เอาแบบไม่มีสีไปละกัน https://ftp.gnu.org/gnu/bash/bash-4.2-patches/bash42-048
+2:33 PM <penguinarmy> font เล็กฉิบ
+2:33 PM <&xellos> 4.3 ต้องอันนี้ดิ https://ftp.gnu.org/gnu/bash/bash-4.3-patches/bash43-025
+2:34 PM <&xellos> ต่อ
+2:34 PM <@Longcat> shell_initialize นี้มันรันตอน bash เปิดสินะะ
+2:34 PM <@Longcat> initialize_shell_variables อ่าน env var
+2:34 PM <&xellos> ใน initialize_shell_variables() ดูที่บรรทัด 352
+2:34 PM <@Longcat> parse_and_execute เอา env ที่อ่านมารัน #เดาล้วนๆ
+2:34 PM <&windows98SE> d3f4ult5 นี่ พี่วุฒิป่าวหว่า O_o''
+2:34 PM <d3f4ult5> ป่าวครับ
+2:35 PM <&xellos> if (privmode == 0 && read_but_dont_execute == 0 && STREQN ("() {", string, 4))
+2:35 PM <@Longcat> 352  if (privmode == 0 && read_but_dont_execute == 0 && STREQN ("() {", string, 4))
+2:35 PM <&xellos> comment ของมันคือ If exported function, define it now.
+2:35 PM <&xellos> ก็คือวิธีประกาศ function จาก env
+2:36 PM <&xellos> code check ว่า env เป็น function หรือไม่จาก STREQN ("() {", string, 4))
+2:36 PM <&xellos> STREQN ก็คือ strncmp
+2:36 PM <&xellos> น้ันก็คือ env นั้นต้องเริ่มด้วย "() {" 4 ตัวนี้เท่านั้น
+2:37 PM <@Longcat> (อ่อ มันมี set เป็น value กับ set เป็น function อันนี้คือเคสฟังก์ชันชิมิ)
+2:37 PM <&xellos> bash ถึงจะมองว่า env นี้เป็น function
+2:37 PM <&xellos> หลังจากนั้นก็ไปที่บรรทัด 362 parse_and_execute (temp_string, name, SEVAL_NONINT|SEVAL_NOHIST);
+2:38 PM <&xellos> parse_and_execute อยู่ใน builtins/evalstring.c
+2:38 PM <&xellos> http://git.savannah.gnu.org/cgit/bash.git/tree/builtins/evalstring.c?id=1a1f8b54fb29c2af275253f35a7fcf79815222d5#n189
+2:39 PM <&xellos> สรุป function นี้ง่ายๆ คือเอา string ที่อยู่ใน env มาทำเหมือนกับว่า shell script อันหนึ่ง
+2:39 PM <@Longcat> 190 parse_and_execute
+2:40 PM <&xellos> จะทำอะไรบ้างขึ้นอยู่กับ flags
+2:40 PM <&xellos> ก่อน patch มีแค่ SEVAL_NONINT|SEVAL_NOHIST ก็คือทำเหมือน shell script
+2:41 PM <SpeedLow> หา channel ตั้งนาน
+2:41 PM <SpeedLow> = =
+2:41 PM <@Longcat> 135   if (flags & (SEVAL_NONINT|SEVAL_INTERACT))
+2:41 PM <@Longcat>     unwind_protect_int (interactive);
+2:41 PM <&xellos> ดังนั้นทำให้อะไรที่ไม่อยู่ใน function โดน execute ทันที
+2:43 PM <@Longcat> ประเด็นคือมันต้องเริ่มด้วย () { เท่านั้นแบ้วว
+2:43 PM <@Longcat> พวก bypass ใส่อะไรไปข้างในละะ
+2:43 PM <&xellos> exploit เลยเป็น () { :;}; shell_code
+2:44 PM <&xellos> ส่วนก่อน shell_code คือเพื่อทำให้จบ function ของ shell
+2:44 PM <@Longcat> :; คืออะไรน้า
+2:44 PM <&xellos> bug มีแค่นี้แหละ
+2:44 PM <&xellos> empty function
+2:45 PM <&xellos> ใส่เป็น a; x; c; d; ก็ได้
+2:45 PM <&xellos> แค่ให้มัน parse ได้
+2:45 PM <&xellos> คราวนี้มาดู patch
+2:46 PM <&xellos> define flag เพื่มมาอีก 2 ตัว SEVAL_FUNCDEF กับ SEVAL_ONECMD
+2:47 PM <&xellos> แล้วตอนเรียก parse_and_execute เพ่ิม 2 flag นี้เข้าไป
+2:47 PM <&xellos> parse_and_execute (temp_string, name, SEVAL_NONINT|SEVAL_NOHIST|SEVAL_FUNCDEF|SEVAL_ONECMD);
+2:47 PM <&xellos> SEVAL_FUNCDEF คือ expect ว่ามีแค่ function เท่านั้น
+2:48 PM <&xellos> และใน parse_and_execute ก็มี check flag นี้
+2:49 PM <@Longcat> แพทช์ของ 4.2.47 หรือ 4.3 นะงับ
+2:49 PM <&xellos> ทำให้คำสั่ง ต่อท้าย function ใช้ไม่ได้แล้ว
+2:49 PM <&xellos> มัน patch เหมือนกันหมดแหละ
+2:49 PM <&xellos> ไม่ว่า version ไหน
+2:49 PM <@Longcat> อ่อ https://ftp.gnu.org/gnu/bash/bash-4.3-patches/bash43-025
+2:49 PM <&xellos> มาดู aftershock
+2:49 PM <&xellos> http://seclists.org/oss-sec/2014/q3/679
+2:50 PM <&xellos> env X='() { (a)=>\' bash -c "echo date"; cat echo
+2:51 PM <&xellos> คือ set env X เป็น () { (a)=>\
+2:51 PM <&xellos> จะเห็นว่าไม่จบ function
+2:51 PM <&xellos> parse_and_execute ผ่าน
+2:52 PM <&xellos> แต่อันนี้ทำได้แค่สร้างไฟล์
+2:53 PM <@Longcat> เดี๋ยวนะอันนี้มันเกิดไรขึ้น 55
+2:53 PM <&xellos> ทำไม อ่านดูจาก seclist เอาเอง
+2:53 PM <&xellos> เอาเป็นว่า ยังไม่มีใครคิดวิธีใช้ bug นี้ทำ code execution ได้
+2:55 PM <+pe3z> Aftershock มันนับรวมหลัง \ เป็นฟังก์ชันใช่ไหมครับ
+2:55 PM <&xellos> กลับมาดูว่า bug แรก ทำอะไรได้บ้าง
+2:55 PM <+pe3z> ดังนั้นมันเลยยังเพิ่มต่อไปได้?
+2:55 PM <&xellos> ใช่
+2:56 PM <&xellos> อย่างแรกที่เห็นคือ rce ของ http cgi
+2:56 PM <&xellos> cgi จะใส่ http header ลงไปใน env
+2:57 PM <&xellos> ถ้า cgi นั้นเป็น bash หรือ มีการไปเรียก /bin/bash เช่นผ่านทาง system()
+2:57 PM <@Longcat> (เสริม env (var) คือตัวแปรที่เก็บไว้ให้เรียกใช้ได้ของ shell session )
+2:57 PM <&xellos> เช่นผ่านทาง system() ใน  perl
+2:57 PM <&xellos> อันนี้ก็จะไปเรียก /bin/sh
+2:59 PM <&xellos>  /bin/sh ใน linux จะเป็น link ไปหา shell ดังนั้นถ้ามันไม่ link ไปหา /bin/bash ก็ exploit ไม่ได้
+2:59 PM <&xellos> ตระกุล rhel sh -> bash
+2:59 PM <&xellos> ตระกูล debian sh -> dash
+2:59 PM <&xellos> busybox sh -> ash
+3:00 PM <@Longcat> พวกเร้าเตอร์นิยม link ไปไหนกันหว่า 55
+3:00 PM <&xellos> ตัวอย่างที่สองคือ SSH Accept env
+3:00 PM <&windows98SE> เร้าเตอร์ นี่ busybox
+3:00 PM <&xellos> อันนี้ใช้แค่ bypass restriction
+3:01 PM <&xellos> เช่น force user นี้มาให้ execute ได้แค่คำสั่งนี้ ก็จะ bypass ได้
+3:01 PM <&xellos> หาดูเอาใน seclist มันมีอธิบายอยู่แล้ว
+3:02 PM <&xellos> ตัวอย่างที่ 3 ก็คือ F5
+3:02 PM <&xellos> อันนี้เป็น privilege escalation
+3:03 PM <@Longcat> (เหมือนที่ github มีให้เลือก ssh clone ปะหว่า)
+3:03 PM <&xellos> คือ exploit ได้เฉพาะ authenticated user
+3:03 PM <&xellos> ตัว web server มันรันด้วย root
+3:03 PM <&xellos> ทำให้ auth user ได้สิทธิ์ root จาก bug นี้
+3:04 PM <@Longcat> good
+3:04 PM <&xellos> อีกตัวอย่างคือ dhclient
+3:04 PM <&xellos> dhcp client ของ linux
+3:04 PM <&xellos> เอามาแปะอีกรอบละกัน https://www.trustedsec.com/september-2014/shellshock-dhcp-rce-proof-concept/
+3:05 PM <&xellos> dhcp server ส่วนใหญ่ใส่ option นี้ได้อยู่แล้ว
+3:05 PM <&xellos> อันนี้ไม่เกี่ยวกับ /bin/sh แล้ว
+3:05 PM <&xellos> เพราะ dhclient-script มันใช้ bash เลย
+3:05 PM <&xellos> บรรทัดแรกเริ่มด้วย #!/bin/bash
+3:06 PM <@Longcat> อ่อ
+3:06 PM <&xellos> ไฟล์อยู่ที่ /sbin/dhclient-script
+3:07 PM <&xellos> อีกตัวอย่างที่เจอกันก็คือทาง smtp
+3:08 PM <&xellos> อันนี้ผมไม่รู้รายละเอียด
+3:08 PM <@Longcat> มัน set env ตอนไหนหว่า
+3:08 PM <&xellos> เหมือนเพิ่งเจอกัน เป็นของ qmail
+3:08 PM <@Longcat> เพิ่มอีก ๆ อันนี้แหล่มเอามาจา pe3z
+3:09 PM <@Longcat> http://1337day.com/exploit/22696
+3:09 PM <@Longcat> vmware fusion ของ osx เหมือนกรณี f5 รันด้วย suid root
+3:09 PM <&xellos> อ๋อ อันนี้มันแค่ใน mac อะ
+3:09 PM <&xellos> ไม่เหมือน f5
+3:10 PM <&xellos> f5 มันรัน web ด้วย root
+3:11 PM <&xellos> สรุปคือถ้าหาวิธีใส่ env ที่เราต้องการ แล้วให้ process นั้นเรียก bash ก็คือ exploit ได้
+3:11 PM <&xellos> จบ
+3:12 PM <@Longcat> เดี๋ยว ๆ
+3:12 PM <&xellos> อีกรอบนะ env string ต้องเริ่มด้วย '() {' เท่านั้น
+3:12 PM <@Longcat> ผมยัง งง aftershock มันเกิดไรขึ้น 55
+3:12 PM <&xellos> space มีแค่อันเดียว
+3:12 PM <&xellos> bypass ก็อย่ามั่ว
+3:13 PM <&xellos> การเขียน a='asdf' 'mldkd'
+3:13 PM <&windows98SE> T^T
+3:13 PM <&xellos> คือเอา string มาต่อกันเฉยๆ
+3:13 PM <@Longcat> 555+
+3:13 PM <&xellos> มันต่อกันตั้งแต่แรกแล้ว
+3:14 PM <@Longcat> อ้าวเดี๋ยวนะแล้วทำไม bypass รันได้อะ
+3:14 PM <&xellos> $ a='asdf''fdsa';echo $a
+3:14 PM <&xellos> asdffdsa
+3:14 PM <@Longcat> เพราะมันรันตอน set env ปะไม่ใช่รันตอน execute bash ที่ไป parse มา?
+3:14 PM <&windows98SE> เพราะไม่ได้เรียกใน env ?
+3:15 PM <&xellos> เห็นมั้ยว่า ยังไม่ทันเรียก bash เลย
+3:15 PM <&xellos> มันก็ต่อกันแล้ว
+3:15 PM <@Longcat> 555+
+3:16 PM <&xellos> aftershock อ่านเอาเอง มันไม่ร้ายแรก
+3:16 PM <&xellos> แรง
+3:16 PM <icheernoom> สร้าง loggg
+3:17 PM <@Longcat> <pe3z> metasploit มี 5 โมดูลแล้ว
+3:17 PM <@Longcat> <pe3z> auxiliary/scanner/http/apache_mod_cgi_bash_env.rb
+3:17 PM <@Longcat> <pe3z> auxiliary/server/dhclient_bash_env.rb
+3:17 PM <@Longcat> <pe3z> exploits/multi/http/apache_mod_cgi_bash_env_exec.rb
+3:17 PM <@Longcat> <pe3z> exploits/osx/local/vmware_bash_function_root.rb
+3:17 PM <@Longcat> <pe3z> อันนี้ 4
+3:17 PM <@Longcat> <pe3z> https://github.com/rapid7/metasploit-framework/pull/3893 อีกหนึ่ง
+3:17 PM <+pe3z> กำลังจะก๊อบ 555
+3:17 PM <@Longcat> click & pwn ja
+3:17 PM <@Longcat> gg
+3:21 PM <@Longcat> จบจ้าแยกย้าย
+3:24 PM <@Longcat> xellos งั้นตอนนี้
+3:24 PM <@Longcat> aftershock ก็ยังทำ remote exploit ไม่ได้ใช่ปะงับ
+3:26 PM <&xellos> ไม่ได้
+3:27 PM <@Longcat> kk
+3:27 PM <@Longcat> ถ้า aftershock แพทช์แล้วยังโดนอีกคราวนี้คงชื่อ tsunami ละ
+3:27 PM <&xellos> ยังไม่มี patch
+3:27 PM <&xellos> ยังคิดไม่ออกว่า patch ยังไง โดยไม่เอา feature นี้ออก
+3:28 PM <&xellos> ลืมอีกอย่าง
+3:28 PM <&xellos> suid คงเห็นตัวอย่าง vmware ใน mac ไปแล้ว
+3:28 PM <&xellos> ถ้า suid program ไปเรียก bash ก็ exploit ได้
+3:28 PM <&xellos> แล้ว sudo ละ
+3:29 PM <@Longcat> หมายความว่างไนะ
+3:29 PM <@Longcat> sudo something.sh งี้เหรองับ
+3:29 PM <&xellos> บาง web app มันจะมี sudo แบบไม่ต้องใส่ password เพื่อให้ตัวเองทำบางอย่างด้วยสิทธิ์ root
+3:30 PM <@Longcat> sudo ใช้ env คนรันหรือ env root หว่า
+3:30 PM <&xellos> ใครตอบได้บ้าง
+3:31 PM <@Longcat> น่าจะของ root
+3:31 PM <EriNorE> น่าจะ root ป่าวเครับ
+3:31 PM <EriNorE> เดานะ
+3:31 PM <&xellos> exploit ไม่ได้
+3:31 PM <&xellos> เพราะ default ของ /etc/sudoers มันมี Defaults    env_reset
+3:31 PM <&xellos> reset env
+3:31 PM <@Longcat> อ่อ
+3:31 PM <&xellos> เหลือแค่ตาม env_keep
+3:31 PM <EriNorE> ลึกซึ๊งมาก
+3:31 PM <@Longcat> มัน reset env ที่ตั้งไว้ชั่วคราวก่อนรันนี้เอง
