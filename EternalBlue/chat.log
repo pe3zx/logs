@@ -1,0 +1,334 @@
+2017-05-09 08:27:23	&xellos	NScript is the component of mpengine that evaluates any filesystem or network activity that looks like JavaScript. To be clear, this is an unsandboxed and highly privileged JavaScript interpreter that is used to evaluate untrusted code, by default on all modern Windows systems.
+2017-05-09 08:27:54	&xellos	ไม่จบแค่ CVE-2017-0290 แน่
+2017-05-09 08:28:09	&xellos	มีคน fuzz หา bug อื่นต่อแน่ๆ
+2017-05-09 08:28:38	&xellos	เหมือนเปิด attack vector ใหม่
+2017-05-09 09:56:04	<--	d3c3pt1c0n (q@pwnme-tb2.ql8.g4impb.IP) has quit (Quit: Leaving)
+2017-05-09 10:32:25	<--	xellos (xellos@pwnme-hpq.p1v.o80giq.IP) has quit (Quit: Leaving)
+2017-05-09 11:06:59	<--	a5 (userpp@pwnme-doc.21l.pdlrnu.IP) has quit (Ping timeout: 121 seconds)
+2017-05-09 12:25:59	-->	a5 (userpp@pwnme-2pp.mgm.4k352j.IP) has joined #2600
+2017-05-09 14:07:46	-->	d3c3pt1c0n (q@pwnme-vub.ofi.m54hib.IP) has joined #2600
+2017-05-09 22:02:22	-->	a6 (userpp@pwnme-2pp.mgm.4k352j.IP) has joined #2600
+2017-05-09 22:03:06	<--	a5 (userpp@pwnme-2pp.mgm.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-10 02:09:24	-->	n0c1tp3c3d (q@pwnme-njn.7tl.m54hib.IP) has joined #2600
+2017-05-10 02:09:24	<--	d3c3pt1c0n (q@pwnme-vub.ofi.m54hib.IP) has quit (Connection closed)
+2017-05-10 05:29:11	-->	xellos (xellos@pwnme-u6h.3fn.hcij4b.IP) has joined #2600
+2017-05-10 05:29:11	--	Mode #2600 [+ao xellos xellos] by ChanServ
+2017-05-10 09:08:46	-->	a7 (userpp@pwnme-16q.r49.4k352j.IP) has joined #2600
+2017-05-10 09:10:01	<--	a6 (userpp@pwnme-2pp.mgm.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-10 09:22:55	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-10 10:08:41	<--	xellos (xellos@pwnme-u6h.3fn.hcij4b.IP) has quit (Quit: Leaving)
+2017-05-10 10:12:55	-->	xellos (xellos@pwnme-u6h.3fn.hcij4b.IP) has joined #2600
+2017-05-10 10:12:55	--	Mode #2600 [+ao xellos xellos] by ChanServ
+2017-05-10 11:31:20	<--	xellos (xellos@pwnme-u6h.3fn.hcij4b.IP) has quit (Quit: Leaving)
+2017-05-10 13:50:02	-->	longcat_ (longcat@pwnme-v6l.acj.9o5c8g.IP) has joined #2600
+2017-05-10 13:52:59	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (Ping timeout: 121 seconds)
+2017-05-10 15:25:30	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-10 15:26:54	-->	longcat__ (longcat@pwnme-v6l.acj.9o5c8g.IP) has joined #2600
+2017-05-10 15:29:04	<--	longcat_ (longcat@pwnme-v6l.acj.9o5c8g.IP) has quit (Ping timeout: 121 seconds)
+2017-05-10 15:30:33	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (Ping timeout: 121 seconds)
+2017-05-10 20:05:55	<--	a7 (userpp@pwnme-16q.r49.4k352j.IP) has quit (Quit: Nettalk6 - www.ntalk.de)
+2017-05-10 22:09:24	<--	n0c1tp3c3d (q@pwnme-njn.7tl.m54hib.IP) has quit (Quit: Leaving)
+2017-05-11 00:23:39	-->	d3c3pt1c0n (q@pwnme-glv.9hp.r8f595.IP) has joined #2600
+2017-05-11 01:37:32	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-11 01:40:57	<--	longcat__ (longcat@pwnme-v6l.acj.9o5c8g.IP) has quit (Ping timeout: 121 seconds)
+2017-05-11 02:15:23	-->	a5 (userpp@pwnme-16q.r49.4k352j.IP) has joined #2600
+2017-05-11 02:21:27	<--	a5 (userpp@pwnme-16q.r49.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-11 02:33:07	-->	a5 (userpp@pwnme-601.no2.nsip2j.IP) has joined #2600
+2017-05-11 02:38:26	-->	a6 (userpp@pwnme-264.21l.pdlrnu.IP) has joined #2600
+2017-05-11 02:41:11	<--	a5 (userpp@pwnme-601.no2.nsip2j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-11 02:59:30	-->	xellos (xellos@pwnme-47b.mvn.o80giq.IP) has joined #2600
+2017-05-11 02:59:30	--	Mode #2600 [+ao xellos xellos] by ChanServ
+2017-05-11 10:28:33	<--	xellos (xellos@pwnme-47b.mvn.o80giq.IP) has quit (Quit: Leaving)
+2017-05-11 10:35:14	-->	longcat_ (longcat@pwnme-v6l.acj.9o5c8g.IP) has joined #2600
+2017-05-11 10:35:36	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (Ping timeout: 121 seconds)
+2017-05-11 10:37:53	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-11 10:41:23	<--	longcat_ (longcat@pwnme-v6l.acj.9o5c8g.IP) has quit (Ping timeout: 121 seconds)
+2017-05-11 10:54:50	<--	d3c3pt1c0n (q@pwnme-glv.9hp.r8f595.IP) has quit (Quit: Leaving)
+2017-05-11 11:51:13	<--	a6 (userpp@pwnme-264.21l.pdlrnu.IP) has quit (Ping timeout: 121 seconds)
+2017-05-11 12:56:02	-->	d3c3pt1c0n (q@pwnme-842.e2l.m54hib.IP) has joined #2600
+2017-05-11 12:59:05	-->	a6 (userpp@pwnme-16q.r49.4k352j.IP) has joined #2600
+2017-05-11 13:31:43	-->	xellos (xellos@pwnme-vlf.3fn.hcij4b.IP) has joined #2600
+2017-05-11 13:31:43	--	Mode #2600 [+ao xellos xellos] by ChanServ
+2017-05-11 17:02:16	&xellos	ในที่สุดก็เข้าใจ nsa eternalblue exploit
+2017-05-11 17:11:33	&xellos	นอนดีกว่า
+2017-05-11 17:11:48	&xellos	พรุ่งนี้ค่อยมาเขียน exploit ให้เสร็จ
+2017-05-11 17:11:49	<--	xellos (xellos@pwnme-vlf.3fn.hcij4b.IP) has quit (Quit: Leaving)
+2017-05-11 17:27:40	-->	longcat_ (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-11 17:27:58	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (Ping timeout: 121 seconds)
+2017-05-11 22:01:56	<--	a6 (userpp@pwnme-16q.r49.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-11 22:02:14	-->	a6 (userpp@pwnme-16q.r49.4k352j.IP) has joined #2600
+2017-05-11 22:08:10	<--	d3c3pt1c0n (q@pwnme-842.e2l.m54hib.IP) has quit (Connection closed)
+2017-05-11 23:48:42	-->	d3c3pt1c0n (q@pwnme-glv.9hp.r8f595.IP) has joined #2600
+2017-05-12 02:12:52	<--	longcat_ (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (Ping timeout: 121 seconds)
+2017-05-12 02:12:57	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-12 02:20:24	<--	a6 (userpp@pwnme-16q.r49.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-12 02:33:26	-->	a6 (userpp@pwnme-9fq.21l.pdlrnu.IP) has joined #2600
+2017-05-12 03:34:06	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (Ping timeout: 121 seconds)
+2017-05-12 03:34:08	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-12 03:53:50	-->	icheernoom (icheernoom@pwnme-ni9.hj7.cqksd1.IP) has joined #2600
+2017-05-12 03:57:07	bongtrop	เหยดดด
+2017-05-12 03:58:46	-->	xellos (xellos@pwnme-vtg.3fn.hcij4b.IP) has joined #2600
+2017-05-12 03:58:46	--	Mode #2600 [+ao xellos xellos] by ChanServ
+2017-05-12 04:27:53	~xelenonz	xellos ไป 2600 ป่าว
+2017-05-12 04:27:57	~xelenonz	*_*
+2017-05-12 04:28:27	&xellos	ไม่ไป
+2017-05-12 04:28:37	~xelenonz	OTL
+2017-05-12 04:28:47	&xellos	นั่งเขียน exploit ดีกว่า
+2017-05-12 04:29:00	~xelenonz	มาเล่า eternalblue ก๊อนน
+2017-05-12 04:29:14	&xellos	วันนี้มีคนเล่าอยู่แล้ว
+2017-05-12 04:30:21	~xelenonz	ขอ version xellos
+2017-05-12 04:31:01	&xellos	version นี้ ไปเล่าก็งงเกือบทั้งห้อง
+2017-05-12 04:31:33	~xelenonz	GG
+2017-05-12 04:32:50	&xellos	อธิบายแค่ส่วน bug ในนี้ก่อนละกัน
+2017-05-12 04:32:51	&xellos	https://gist.github.com/worawit/77e148bc5c8c3c28a28284d21b40e2ba
+2017-05-12 04:32:59	&xellos	วิธี exploit มันยาวววววววววว
+2017-05-12 04:33:11	bongtrop	ไหน
+2017-05-12 04:33:13	bongtrop	ไหน
+2017-05-12 04:33:19	 *	xelenonz เตรียมความพร้อมก่อนไป 2600
+2017-05-12 04:33:25	&xellos	bug อยุ่ใน SrvOs2FeaListSizeToNt()
+2017-05-12 04:33:45	bongtrop	เค
+2017-05-12 04:33:55	&xellos	เริ่มต้นอ่านจาก SrvOs2FeaListToNt()
+2017-05-12 04:34:27	&xellos	user สามารถส่ง FEALIST ได้
+2017-05-12 04:34:35	&xellos	ส่วนนี้ user control ทั้งหมด
+2017-05-12 04:34:50	&xellos	bug เกิดตอน FEALIST.cbList > 0xffff
+2017-05-12 04:35:22	icheernoom	*แอบฟัง*
+2017-05-12 04:35:31	&xellos	data structure มันจะเป็นแบบนี้
+2017-05-12 04:36:24	&xellos	| total size | fea0.flag | fea0.cbName | fea0.cbValue | fea0.name | fea0.value | fea1.flag | ...
+2017-05-12 04:37:05	&xellos	fea0.name เป็น string ต้องมี NULL terminated
+2017-05-12 04:37:17	&xellos	ถ้า fea0.cbName เป็น 0  ตรง fea0.name จะเป็น \x00
+2017-05-12 04:37:35	&xellos	ถ้า fea0.cbValue เป็น fea.value จะไม่มี
+2017-05-12 04:38:17	&xellos	SrvOs2FeaListToNt() ทำหน้าที่แปลง FEALIST เป็น FILE_FULL_EA_INFORMATION
+2017-05-12 04:38:56	&xellos	FILE_FULL_EA_INFORMATION จะคล้ายๆ FEALIST แต่มี NextEntryOffset และก็มี alignment
+2017-05-12 04:39:51	&xellos	เริ่มต้น SrvOs2FeaListToNt() จะเรียก SrvOs2FeaListSizeToNt() เพื่อหาว่าต้องจอง memory เท่าไร สำหรับ FILE_FULL_EA_INFORMATION
+2017-05-12 04:41:21	&xellos	SrvOs2FeaListSizeToNt() จะลดขนาดของ FEALIST.cbList ด้วยถ้า FEA ตัวสุดท้ายมันเกิน FEALIST.cbList
+2017-05-12 04:42:12	&xellos	เช่นเริ่มต้น FEALIST.cbList เป็น 20
+2017-05-12 04:42:27	&xellos	และ fea0.value จบที่ตำแหน่ง 10
+2017-05-12 04:42:49	&xellos	แต่ fea1.cbName + fea1.cbValue มีค่าเกิน 10
+2017-05-12 04:43:16	&xellos	แสดงว่ามีข้อมูล fea1 ไม่พอ
+2017-05-12 04:43:32	&xellos	มันจะแก้ค่า FEALIST.cbList เป็น 10
+2017-05-12 04:43:59	&xellos	bug มันอยู่ที่ตอนลดค่า FEALIST.cbList มัน cast เป็น WORD ก่อนลด
+2017-05-12 04:44:15	&xellos	ดังนั้นถ้า FEALIST.cbList เป็น 0x10000
+2017-05-12 04:44:31	~xelenonz	truncate?
+2017-05-12 04:46:01	&xellos	แล้ว process ถึง 0xff80 มันควรจะแก้ค่าเป็น 0xff80
+2017-05-12 04:46:13	&xellos	แต่มัน cast เป็น WORD
+2017-05-12 04:46:23	&xellos	ค่าก็จะเป็น 0x1ff80
+2017-05-12 04:46:33	&xellos	*(WORD *)pFeaList = (BYTE*)pFea - (BYTE*)pFeaList;
+2017-05-12 04:46:46	&xellos	pFea คือ pointer ที่ process ไปถึง
+2017-05-12 04:47:07	&xellos	pFeaList คือตำแหน่งเริ่มต้น
+2017-05-12 04:48:11	&xellos	แล้ว SrvOs2FeaListSizeToNt() ก็ return จำนวน byte ที่ต้อง allocate สำหรับ FILE_FULL_EA_INFORMATION ไว้ copy ถึงแค่ 0xff80
+2017-05-12 04:48:23	&xellos	พอถึงส่วน copy
+2017-05-12 04:49:27	bongtrop	แต่มัน cast เป็น WORD
+2017-05-12 04:49:30	bongtrop	ค่าก็จะเป็น 0x1ff80
+2017-05-12 04:49:50	&xellos	ก็ loop FEALIST แล้ว copy ไปเรื่อยๆ จนกว่าหมด FEALIST.cbSize 
+2017-05-12 04:49:59	&xellos	มันก็เป็น OOB write
+2017-05-12 04:50:21	&xellos	เป็น OOB read ด้วย ถ้ามัน read เกินข้อมูลที่ user ให้ไว้
+2017-05-12 04:51:49	&xellos	bongtrop: งงหรอ
+2017-05-12 04:52:00	bongtrop	ทำไมมี 1 อะ
+2017-05-12 04:52:27	bongtrop	เพิ่มมา bit 1
+2017-05-12 04:53:19	&xellos	FEALIST.cbList ใน memory มันเป็น  00 00  01 00
+2017-05-12 04:53:35	&xellos	พอคำนวณ size ได้ 0xff80
+2017-05-12 04:54:07	&xellos	*(WORD *)pFeaList = (BYTE*)pFea - (BYTE*)pFeaList;
+2017-05-12 04:54:26	&xellos	เห็นว่า cast เป็น WORD มันจะเขียนค่าแค่ 2 bytes แรก
+2017-05-12 04:54:43	bongtrop	เค
+2017-05-12 04:54:48	&xellos	2 bytes หลัง (HIWORD) ไม่แตะ
+2017-05-12 04:55:48	&xellos	bug ก็มีแค่นี้แหละ
+2017-05-12 04:56:28	~xelenonz	เค
+2017-05-12 04:56:31	~xelenonz	\o/
+2017-05-12 04:56:35	bongtrop	น่อนบอก ez bug
+2017-05-12 04:56:40	~xelenonz	o_O
+2017-05-12 04:56:50	~xelenonz	hard exploit
+2017-05-12 04:58:31	&xellos	code ที่ให้ compile ใน linux ได้เลยนะ
+2017-05-12 04:58:50	&xellos	มีแค่ dump.bin ก็ test ได้แล้ว
+2017-05-12 05:00:25	~xelenonz	กำลังคิดว่าเขียนเกิน 60k bytes นี่มันต้องจัด heap ยังไงไม่ให้พัง
+2017-05-12 05:00:32	~xelenonz	- -"
+2017-05-12 05:00:43	&xellos	เขียนเกินนิดเดียวดิ
+2017-05-12 05:01:37	 *	xelenonz อ้าว นึกว่ามันต้อง loop อ่านจนครบ -.-"
+2017-05-12 05:01:39	&xellos	มันหยุด copy เมื่อจาก invalid FEA.flags ด้วย
+2017-05-12 05:01:48	&xellos	เมื่อเจอ
+2017-05-12 05:01:55	~xelenonz	อ่อ
+2017-05-12 05:02:32	~xelenonz	bongtrop ไม่ crypto ละ
+2017-05-12 05:02:36	bongtrop	bug แบบนี้มีชื่อเรียกว่าไงอะ
+2017-05-12 05:02:37	~xelenonz	มา #teampwn
+2017-05-12 05:02:42	bongtrop	cast ผิด
+2017-05-12 05:02:55	bongtrop	หรือ OOB เลย
+2017-05-12 05:03:27	~xelenonz	type confusion?
+2017-05-12 05:04:01	&xellos	มัน cast ผิดอะ ไม่รู้จะเรียกว่า type confusion ได้ไหม
+2017-05-12 05:04:32	&xellos	nsa exploit เทพสุดๆ payload เดียวใช้ได้ทั้ง x86 กับ x64
+2017-05-12 05:05:06	bongtrop	ชมองกรตัวเองก็มา
+2017-05-12 05:05:19	~xelenonz	lul
+2017-05-12 05:05:28	&xellos	หมายถึงส่วนที่ overwrite พวก pointer นะ
+2017-05-12 05:08:12	bongtrop	xellos ไปพูดเสริมเย็นนี้เร็ว
+2017-05-12 05:08:55	 *	xellos อธิบายในนี้แล้ว ใครในนี้ไปพูดเสริมก็ได้
+2017-05-12 05:09:18	~xelenonz	ให้ icheernoom ไปพูด
+2017-05-12 05:11:03	<--	icheernoom (icheernoom@pwnme-ni9.hj7.cqksd1.IP) has quit (Ping timeout: 121 seconds)
+2017-05-12 05:12:08	&xellos	lol ออกเลย
+2017-05-12 05:13:12	~xelenonz	gg
+2017-05-12 05:13:15	bongtrop	55555
+2017-05-12 05:13:25	bongtrop	โหววว
+2017-05-12 05:13:35	~xelenonz	ให้ bongtrop ไปพูด
+2017-05-12 05:13:38	bongtrop	longcat ดิโหว้ววว
+2017-05-12 05:13:40	<--	bongtrop (bongtrop@pwnme-o3i.7ms.v9j6nv.IP) has quit (Quit: WeeChat 1.4)
+2017-05-12 05:14:01	-->	bongtrop (bongtrop@pwnme-o3i.7ms.v9j6nv.IP) has joined #2600
+2017-05-12 05:14:25	bongtrop	หะพูดอะไรนะ
+2017-05-12 05:14:27	bongtrop	ไม่ทันเห็น
+2017-05-12 05:14:30	--	bongtrop is now known as [ghost]76010
+2017-05-12 05:14:46	longcat	ห๊ะ
+2017-05-12 05:15:18	longcat	มีที่บ.ก็วิเคราะห์ eternalblue ไว้เป็น blogspot
+2017-05-12 05:15:22	longcat	เดี๋ยวจะโพสต์เร็ว ๆ นี้
+2017-05-12 05:15:48	--	[ghost]76010 is now known as bongtrop
+2017-05-12 05:16:17	 *	xellos จะ post PoC แบบมีรายละเอียด เร็วๆนี้เหมือนกัน
+2017-05-12 05:16:26	bongtrop	แข่งกันแล้ว
+2017-05-12 05:16:36	bongtrop	เดียวน่อนจะโพส youtube โช
+2017-05-12 05:16:44	longcat	55
+2017-05-12 05:17:10	longcat	เห็นมีคนปล่อยแบบไม่อิงจากที่มันหลุดมาแล้วปะ
+2017-05-12 05:17:14	longcat	ของ exploitpack
+2017-05-12 05:18:00	longcat	อยากได้ของ win2012
+2017-05-12 05:18:05	longcat	xellos จัดให้โหน่ย
+2017-05-12 05:18:13	&xellos	อันนี้ละหรอ https://www.exploit-db.com/exploits/41987/
+2017-05-12 05:18:30	&xellos	เอามาจาก https://github.com/RiskSense-Ops/MS17-010/ ชัดๆ
+2017-05-12 05:18:31	longcat	ช่ายย
+2017-05-12 05:18:40	longcat	ง่า 
+2017-05-12 05:18:52	&xellos	win2012 ส่วนที่ shellcode ไปอยู่มันเป็น nx อะ
+2017-05-12 05:19:05	&xellos	ต้องทำ ROP ใน kernel อีก
+2017-05-12 05:19:43	longcat	T^T
+2017-05-12 05:19:50	&xellos	แต่มันมี kaslr อีก
+2017-05-12 05:20:10	&xellos	ถ้าจะ exploit win2012 ต้องเขียนต่ออีกเยอะเลย
+2017-05-12 05:21:35	&xellos	https://msdn.microsoft.com/en-us/library/windows/hardware/hh920391(v=vs.85).aspx
+2017-05-12 05:21:51	&xellos	เพราะอันนี้แหละ ที่ทำให้ exploit ไม่ work กับ win2012
+2017-05-12 05:23:34	-->	icheernoom (icheernoom@pwnme-ni9.hj7.cqksd1.IP) has joined #2600
+2017-05-12 05:24:03	longcat	NX
+2017-05-12 05:24:12	longcat	อ้าวมันไม่ได้มีตั้งแต่ win ก่อน ๆ ละเหรออ
+2017-05-12 05:24:29	longcat	อ่อของ nonpaged pool
+2017-05-12 06:10:22	-->	noon007 (noob007@pwnme-tca.v6u.f5rmjq.IP) has joined #2600
+2017-05-12 06:20:11	bongtrop	noob007@pwnme-tca.v6u.f5rmjq.IP
+2017-05-12 07:09:42	<--	noon007 (noob007@pwnme-tca.v6u.f5rmjq.IP) has quit (Quit: AndroidIrc Disconnecting)
+2017-05-12 07:09:59	-->	noob007 (noob007@pwnme-tca.v6u.f5rmjq.IP) has joined #2600
+2017-05-12 07:41:27	<--	noob007 (noob007@pwnme-tca.v6u.f5rmjq.IP) has quit (Ping timeout: 121 seconds)
+2017-05-12 08:48:08	-->	noob007 (Android@pwnme-phu.q96.pdlrnu.IP) has joined #2600
+2017-05-12 09:08:18	<--	noob007 (Android@pwnme-phu.q96.pdlrnu.IP) has quit (The TLS connection was non-properly terminated.)
+2017-05-12 09:08:26	-->	noob007 (Android@pwnme-phu.q96.pdlrnu.IP) has joined #2600
+2017-05-12 11:28:28	<--	xellos (xellos@pwnme-vtg.3fn.hcij4b.IP) has quit (Quit: Leaving)
+2017-05-12 11:33:17	<--	d3c3pt1c0n (q@pwnme-glv.9hp.r8f595.IP) has quit (Quit: Leaving)
+2017-05-12 11:42:00	<--	icheernoom (icheernoom@pwnme-ni9.hj7.cqksd1.IP) has quit (Quit: Leaving)
+2017-05-12 11:50:12	<--	a6 (userpp@pwnme-9fq.21l.pdlrnu.IP) has quit (Ping timeout: 121 seconds)
+2017-05-12 12:34:46	-->	xellos (xellos@pwnme-cp2.3fn.hcij4b.IP) has joined #2600
+2017-05-12 12:34:46	--	Mode #2600 [+ao xellos xellos] by ChanServ
+2017-05-12 13:10:22	-->	noob007_ (Android@pwnme-pb6.oc3.4k352j.IP) has joined #2600
+2017-05-12 13:10:22	<--	noob007 (Android@pwnme-phu.q96.pdlrnu.IP) has quit (Connection closed)
+2017-05-12 13:56:37	-->	noob007 (noob007@pwnme-pb6.oc3.4k352j.IP) has joined #2600
+2017-05-12 13:57:08	<--	noob007 (noob007@pwnme-pb6.oc3.4k352j.IP) has quit (Quit: AndroidIrc Disconnecting)
+2017-05-12 13:57:15	-->	noob007 (noob007@pwnme-pb6.oc3.4k352j.IP) has joined #2600
+2017-05-12 14:24:34	-->	a6 (userpp@pwnme-l7k.1b4.pdlrnu.IP) has joined #2600
+2017-05-12 14:50:49	<--	a6 (userpp@pwnme-l7k.1b4.pdlrnu.IP) has quit (Ping timeout: 121 seconds)
+2017-05-12 15:28:09	&xellos	ท่าทางจะไม่เกี่ยวกับ nonpaged pool เป็น nx แหะ
+2017-05-12 15:28:49	&xellos	exploit มันใช้ magical address ที่ไม่ใช่ nonpaged pool ด้วย
+2017-05-12 15:29:12	&xellos	แต่เอาเป็นว่าใน win7/win2008 มัน executable
+2017-05-12 15:29:20	&xellos	แต่ win2012 มัน nx
+2017-05-12 15:54:50	longcat	เสียจัย
+2017-05-12 16:43:25	<--	xellos (xellos@pwnme-cp2.3fn.hcij4b.IP) has quit (Quit: Leaving)
+2017-05-12 17:18:51	<--	noob007_ (Android@pwnme-pb6.oc3.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-12 17:41:56	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (The TLS connection was non-properly terminated.)
+2017-05-12 17:42:21	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-12 17:42:39	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (The TLS connection was non-properly terminated.)
+2017-05-12 17:42:44	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-12 18:05:21	-->	a6 (userpp@pwnme-kgv.oi3.f5rmjq.IP) has joined #2600
+2017-05-12 18:08:22	-->	noob007_ (Android@pwnme-pb6.oc3.4k352j.IP) has joined #2600
+2017-05-12 18:21:47	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (The TLS connection was non-properly terminated.)
+2017-05-12 18:22:15	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-12 18:34:50	-->	a7 (userpp@pwnme-kgv.oi3.f5rmjq.IP) has joined #2600
+2017-05-12 18:37:40	<--	a6 (userpp@pwnme-kgv.oi3.f5rmjq.IP) has quit (Ping timeout: 121 seconds)
+2017-05-12 19:23:21	<--	a7 (userpp@pwnme-kgv.oi3.f5rmjq.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 01:10:45	<--	noob007_ (Android@pwnme-pb6.oc3.4k352j.IP) has quit (Quit: AndroidIrc Disconnecting)
+2017-05-13 01:10:54	-->	noob007_ (Android@pwnme-pb6.oc3.4k352j.IP) has joined #2600
+2017-05-13 02:13:18	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 02:13:49	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-13 03:50:26	<--	noob007 (noob007@pwnme-pb6.oc3.4k352j.IP) has quit (Ping timeout: 122 seconds)
+2017-05-13 03:55:07	-->	noob007 (Android@pwnme-jh2.4e2.pdlrnu.IP) has joined #2600
+2017-05-13 03:57:36	<--	noob007_ (Android@pwnme-pb6.oc3.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 04:49:31	<--	noob007 (Android@pwnme-jh2.4e2.pdlrnu.IP) has quit (Connection closed)
+2017-05-13 04:57:55	-->	noob007 (Android@pwnme-jh2.4e2.pdlrnu.IP) has joined #2600
+2017-05-13 05:24:11	-->	a7 (userpp@pwnme-qka.jdp.4k352j.IP) has joined #2600
+2017-05-13 06:55:00	<--	a7 (userpp@pwnme-qka.jdp.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 06:57:25	-->	a7 (userpp@pwnme-qka.jdp.4k352j.IP) has joined #2600
+2017-05-13 07:04:53	-->	d3c3pt1c0n (q@pwnme-t97.k4a.m54hib.IP) has joined #2600
+2017-05-13 07:10:06	-->	xellos (xellos@pwnme-jno.3fn.hcij4b.IP) has joined #2600
+2017-05-13 07:10:06	--	Mode #2600 [+ao xellos xellos] by ChanServ
+2017-05-13 09:01:07	-->	noob0007 (Android@pwnme-fct.ji9.4k352j.IP) has joined #2600
+2017-05-13 09:20:53	<--	xellos (xellos@pwnme-jno.3fn.hcij4b.IP) has quit (Quit: Leaving)
+2017-05-13 10:04:53	-->	noob0007_ (Android@pwnme-fct.ji9.4k352j.IP) has joined #2600
+2017-05-13 10:04:53	<--	noob0007 (Android@pwnme-fct.ji9.4k352j.IP) has quit (Connection closed)
+2017-05-13 11:08:02	<--	d3c3pt1c0n (q@pwnme-t97.k4a.m54hib.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 11:10:32	-->	d3c3pt1c0n (q@pwnme-t97.k4a.m54hib.IP) has joined #2600
+2017-05-13 11:22:42	-->	longcat_ (longcat@pwnme-o9p.69o.9o5c8g.IP) has joined #2600
+2017-05-13 11:25:53	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 11:26:05	<--	d3c3pt1c0n (q@pwnme-t97.k4a.m54hib.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 11:30:52	-->	d3c3pt1c0n (q@pwnme-t97.k4a.m54hib.IP) has joined #2600
+2017-05-13 14:51:23	<--	noob0007_ (Android@pwnme-fct.ji9.4k352j.IP) has quit (Quit: -a- Connection Timed Out)
+2017-05-13 14:51:25	-->	noob0007 (Android@pwnme-fct.ji9.4k352j.IP) has joined #2600
+2017-05-13 15:31:59	<--	noob007 (Android@pwnme-jh2.4e2.pdlrnu.IP) has quit (Quit: -a- Connection Timed Out)
+2017-05-13 15:32:00	-->	noob007 (Android@pwnme-jh2.4e2.pdlrnu.IP) has joined #2600
+2017-05-13 16:27:26	-->	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has joined #2600
+2017-05-13 16:30:45	<--	longcat_ (longcat@pwnme-o9p.69o.9o5c8g.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 18:21:37	<--	d3c3pt1c0n (q@pwnme-t97.k4a.m54hib.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 18:23:42	-->	d3c3pt1c0n (q@pwnme-t97.k4a.m54hib.IP) has joined #2600
+2017-05-13 18:40:26	<--	noob0007 (Android@pwnme-fct.ji9.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 18:54:51	-->	noob0007 (Android@pwnme-9a4.5fq.4k352j.IP) has joined #2600
+2017-05-13 20:53:47	-->	noob007_ (Android@pwnme-qpb.e8j.f5rmjq.IP) has joined #2600
+2017-05-13 20:55:50	<--	noob007 (Android@pwnme-jh2.4e2.pdlrnu.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 22:03:20	<--	a7 (userpp@pwnme-qka.jdp.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-13 23:49:40	<--	noob007_ (Android@pwnme-qpb.e8j.f5rmjq.IP) has quit (Quit: -a- Connection Timed Out)
+2017-05-13 23:49:41	-->	noob007 (Android@pwnme-qpb.e8j.f5rmjq.IP) has joined #2600
+2017-05-14 00:11:24	<--	noob0007 (Android@pwnme-9a4.5fq.4k352j.IP) has quit (Quit: -a- Connection Timed Out)
+2017-05-14 00:11:25	-->	noob0007 (Android@pwnme-9a4.5fq.4k352j.IP) has joined #2600
+2017-05-14 01:36:33	-->	noob007_ (Android@pwnme-9a4.5fq.4k352j.IP) has joined #2600
+2017-05-14 01:36:33	<--	noob007 (Android@pwnme-qpb.e8j.f5rmjq.IP) has quit (Connection closed)
+2017-05-14 03:49:37	-->	n0c1tp3c3d (q@pwnme-5lr.2v5.m54hib.IP) has joined #2600
+2017-05-14 03:52:45	<--	d3c3pt1c0n (q@pwnme-t97.k4a.m54hib.IP) has quit (Ping timeout: 121 seconds)
+2017-05-14 05:20:47	-->	a7 (userpp@pwnme-qka.jdp.4k352j.IP) has joined #2600
+2017-05-14 11:33:39	-->	longcat_ (longcat@pwnme-63i.qe1.jvhno0.IP) has joined #2600
+2017-05-14 11:36:35	<--	longcat (longcat@pwnme-p4j.huu.ar7ish.IP) has quit (Ping timeout: 121 seconds)
+2017-05-14 12:45:06	-->	xellos (xellos@pwnme-1s8.3fn.hcij4b.IP) has joined #2600
+2017-05-14 12:45:06	--	Mode #2600 [+ao xellos xellos] by ChanServ
+2017-05-14 13:20:15	longcat_	xellos, https://twitter.com/zerosum0x0/status/863698849856016384
+2017-05-14 13:20:38	&xellos	เห็นแล้ว
+2017-05-14 13:20:45	&xellos	แต่มันไม่มีอธิบายอะไรเลย
+2017-05-14 13:20:56	 *	xellos มีหวังกับ windows 2012 แล้ว
+2017-05-14 13:21:25	&xellos	แต่ตอนนี้กำลังหาวิธีให้มัน reliable มากกว่าเดิมอยู่
+2017-05-14 13:22:10	&xellos	แต่คืนนี้คงปล่อยตัว win7/2008 ไปก่อนแหละ
+2017-05-14 13:25:19	longcat_	*0*
+2017-05-14 13:25:21	longcat_	รอแชร์เบย
+2017-05-14 13:28:23	~xelenonz	xellos เขียนเสดละเรอ o_O
+2017-05-14 13:29:18	&xellos	exploit ของ win7/2008 เสร็จตั้งแต่วันศุกร์แหละ
+2017-05-14 13:29:21	 *	xelenonz เพิ่งเจอ inc eax + je
+2017-05-14 13:29:24	~xelenonz	*_*
+2017-05-14 13:29:29	&xellos	แต่นั่งเขียน comment นาน
+2017-05-14 13:29:50	&xellos	อธิบายเยอะ
+2017-05-14 13:31:53	&xellos	และก็เพลินกับการหาวิธี exploit บน win2012 ด้วยแหละ
+2017-05-14 13:32:06	~xelenonz	O_O
+2017-05-14 13:32:28	 *	xelenonz แค่ exploit kernel linux ก้ปวดหัวละ
+2017-05-14 13:32:52	~xelenonz	เจอ windbg ไป ggwp
+2017-05-14 13:38:48	longcat_	*_*
+2017-05-14 14:03:31	<--	longcat_ (longcat@pwnme-63i.qe1.jvhno0.IP) has quit (The TLS connection was non-properly terminated.)
+2017-05-14 14:03:41	<--	noob007_ (Android@pwnme-9a4.5fq.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-14 14:03:43	-->	longcat (longcat@pwnme-o9p.69o.9o5c8g.IP) has joined #2600
+2017-05-14 14:04:32	<--	noob0007 (Android@pwnme-9a4.5fq.4k352j.IP) has quit (Ping timeout: 121 seconds)
+2017-05-14 14:41:46	&xellos	ปล่อยแหละ https://gist.github.com/worawit/bd04bad3cd231474763b873df081c09a
+2017-05-14 14:41:51	&xellos	สำหรับ win7/2008
+2017-05-14 14:43:53	&xellos	xelenonz: อ่านแล้ว ฝึก windows exploit ด้วยการเขียนสำหรับ win2012 ให้ด้วยนะ
+2017-05-14 14:44:26	&xellos	tweet แป๊บ ไม่ได้ tweet นานแหละ
+2017-05-14 14:46:30	-->	longcat_ (longcat@pwnme-63i.qe1.jvhno0.IP) has joined #2600
+2017-05-14 14:48:46	<--	longcat (longcat@pwnme-o9p.69o.9o5c8g.IP) has quit (Ping timeout: 121 seconds)
+2017-05-14 14:52:38	<--	longcat_ (longcat@pwnme-63i.qe1.jvhno0.IP) has quit (Connection closed)
+2017-05-14 14:53:31	-->	longcat (longcat@pwnme-63i.qe1.jvhno0.IP) has joined #2600
+2017-05-14 14:54:19	-->	longcat_ (longcat@pwnme-o9p.69o.9o5c8g.IP) has joined #2600
+2017-05-14 14:54:19	<--	longcat (longcat@pwnme-63i.qe1.jvhno0.IP) has quit (Connection closed)
+2017-05-14 15:03:22	~xelenonz	o_O
+2017-05-14 15:03:51	~xelenonz	ยังไม่รู้เลย windows มี protection ไรมั่ง -_-"
+2017-05-14 15:04:51	~xelenonz	EternalBlue exploit by sleepya
+2017-05-14 15:05:03	~xelenonz	นึกว่าไม่ใช้ละ ชื่อนี้
+2017-05-14 15:05:43	&xellos	ใช้แค่ post อย่างเดียว
+2017-05-14 15:06:14	&xellos	ไม่ใช่ใน irc แล้ว ใช้แล้วมีแต่คนทัก
+2017-05-14 15:06:50	&xellos	ชื่อนี้เป็น one way communication
+2017-05-14 15:06:53	~xelenonz	lul
+2017-05-14 15:07:40	~xelenonz	เล่น irc ไหน เด่วส่งคนไปทัก
+2017-05-14 15:08:36	&xellos	เล่น rop.sh
