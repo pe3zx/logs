@@ -59,3 +59,173 @@
 2018-01-13 10:20:45	&xellos	ก็เขียน code เป็น if (x < array1_size) { lfence; ... }
 2018-01-13 10:21:39	&xellos	lfence ก็คำสั่งให้ processor คอย read memory operation ทั้งหมดให้เสร็จก่อน แล้วค่อยทำคำสั่งต่อไป
 2018-01-13 10:21:45	&xellos	จบ spectre variant 1
+2018-01-13 13:19:46	&xellos	ต่อๆ
+2018-01-13 13:20:31	&xellos	ก่อนต่อ ให้คิดว่าส่วน speculative execution เหมือนมี processor อีกตัวทำงานล่วงหน้าไว้
+2018-01-13 13:21:32	&xellos	เจอพวก branch ก็ predict เอาถ้าถูก ก็ commit ผลลัพธ์ โดยไม่ต้อง execute แล้ว
+2018-01-13 13:21:40	&xellos	ถ้าผิดก็ rollback
+2018-01-13 13:23:41	&xellos	spectre/meltdown คือ side channel attack ที่เกิดจาก specualtive execution มีการ fetch memory เข้า cache
+2018-01-13 13:23:42	-->	oszo (0520@pwnme-bfq.k59.p1g0vn.IP) has joined #2600
+2018-01-13 13:26:22	&xellos	โดยหลอกให้ speculative ไป fetch memory ผิดที่
+2018-01-13 13:28:31	&xellos	ดังนั้น attacker ต้องสามารถ clear cache และอ่าน memory ส่วนที่ victim อ่านได้ เพื่อที่จะ check ว่าข้อมูลของ memory address ไหนอยู่ใน cache
+2018-01-13 13:28:43	&xellos	แล้วแปลงกลับมาเป็นข้อมูล
+2018-01-13 13:28:57	&xellos	ต่อ spectre variant 2
+2018-01-13 13:30:10	&xellos	variant 1 เป็นเรื่อง bounds check ที่เป็น branch condition ส่วน variant นี้เป็น indirect jump/call
+2018-01-13 13:33:44	&xellos	indirect jmp/call ถ้าใน assembly ก็เป็น jmp [rax], call [rcx+8], "mov rax,[rdi]; call rax", ...
+2018-01-13 13:34:15	&xellos	ถ้ามองใน c code ก็เป็นพวก switch/case, pointer to function
+2018-01-13 13:35:17	&xellos	c++ ก็ใช้ในพวก polymorphism สร้างเป็น vtable ขึ้นมา
+2018-01-13 13:37:10	&xellos	นอกจาก condition branch แล้ว speculative ก็ predict indirect branch ว่าจะ jump ไปไหนต่อ แล้ว fetch มาทำก่อน
+2018-01-13 13:39:14	&xellos	ตาม project zero blog  จะมี generic predictor กับ indirect call predictor โดยใช้ Branch Target Buffer ช่วยในการ predict
+2018-01-13 13:42:49	&xellos	ใน variant นี้คือสามารถหลอกให้ speculative execution jump ไปที่ไหนก็ได้
+2018-01-13 13:53:17	&xellos	https://gist.github.com/worawit/e4c47a6e56e491039462ecaa0e29f2f9
+2018-01-13 13:53:58	&xellos	mini poc ว่าสามารถหลอก speculative ให้ jump ไปทำงานผิดที่
+2018-01-13 13:54:30	&xellos	ข้อมูลเอามาจาก project zero นั้นแหละ
+2018-01-13 13:55:25	&xellos	ใน poc นี้คือใน process เดียวกัน ซึ่งปกติจะไม่เป็นปัญหา
+2018-01-13 13:58:30	&xellos	แต่ branch target history จะเก็บไว้ใน logical cpu นั้น ดังนั้นเมื่อ OS เปลี่ยนมีการทำ process switching ให้มาทำงานที่ logical cpu เดียวกัน
+2018-01-13 13:58:59	&xellos	process ใหม่นั้น ก็ยังใช้ branch target history เดิมในการ predict indirect jmp/call
+2018-01-13 14:01:30	&xellos	ดังนั้นถ้าเราทำ mistrain branch target ให้ไป address ที่เราต้องการใน process ของเราเอง แล้วให้ switch ไปที่ victim process
+2018-01-13 14:01:55	&xellos	พอ victim process ทำงานถึง indirect jmp/call ส่วน speculative ก็จะ jump ผิดที่
+2018-01-13 14:03:17	&xellos	ตอนนี้ เราสามารถ control indirect jmp/call ของ speculative ได้แล้ว
+2018-01-13 14:05:33	&xellos	ส่วนต่อไปคือหา gadget เพื่อให้ speculative ไปดึงข้อมูลจาก memory address ที่ต้องการ แล้ว fetch memory ในส่วนที่ attacker สามารถ check ได้เข้า cache
+2018-01-13 14:07:31	&xellos	gadget ที่หาคือ instructions ใน victim process ที่จะหลอกให้ speculative กระโดดไปทำงาน
+2018-01-13 14:08:38	&xellos	คล้ายๆ กับ ROP gadget แต่คราวนี้ไม่ใช้ ret แต่เป็น gadget เพื่อ load memory
+2018-01-13 14:09:44	&xellos	ตัวอย่าง gadget จาก spectre paper
+2018-01-13 14:09:53	&xellos	adc edi,dword ptr [ebx+edx+13BE13BDh]
+2018-01-13 14:09:59	&xellos	adc dl,byte ptr [edi]
+2018-01-13 14:11:03	&xellos	โดยถ้าใช้ gadget นี้ attacker ต้อง control register edi และ (ebx หรือ edx) ได้
+2018-01-13 14:13:35	&xellos	โดยคำสั่งแรกส่วน dword ptr [ebx+edx+...] ใช้ control ว่าจะอ่าน memory address อะไรออกมาออกจาก victim process
+2018-01-13 14:15:12	&xellos	ค่าที่ได้ไปบวกกับ edi ดังนั้น เราก็ต้อง control edi ให้ไปอยู่ใน memory ที่เราสามารถ check ได้
+2018-01-13 14:15:39	&xellos	แล้วคำสั่งที่ 2 คือ fetch memory เข้าไปใน cache แล้วก็ check เหมือน variant 1
+2018-01-13 14:17:34	&xellos	attack ของ variant ก็ประมาณนี้
+2018-01-13 14:17:51	&xellos	variant 2 ก็ประมาณนี้
+2018-01-13 14:21:06	&xellos	attack ตัวอย่างใน paper จะเป็นใน windows
+2018-01-13 14:21:50	&xellos	เนื่องด้วย aslr ใน windows สำหรับ dll เดียวกัน จะถูกโหลดที่ virtual address เดียวกัน
+2018-01-13 14:22:27	&xellos	และที่แน่นอนคือ ในส่วน code จะ map ไปที่ physical address เดียวกัน
+2018-01-13 14:24:10	&xellos	หวังว่ารู้เรื่อง virtual memory ว่ามัน map ยังไงกับ physical memory กันนะ
+2018-01-13 14:26:13	&xellos	ถ้า attack สั่ง clflush ในส่วน code ใน process ของตัวเอง ก็จะ clear cache ของ memory นั้นที่อยู่ในทุก process ที่ใช้ dll เดียวกัน เพราะ physical address เดียวกัน
+2018-01-13 14:27:46	&xellos	ดังนั้น memory ส่วนนี้ สามารถเอามาใช้ทำ flush+reload เพื่อ check ว่า memory นี้อยู่ใน cache ไหมได้
+2018-01-13 14:29:13	&xellos	ส่วน indirect jmp ก็จะมีเต็มไปหมด หาได้ใน dll ของ windows เอง เช่น ntdll.dll
+2018-01-13 14:31:08	&xellos	จาก paper คือ variant 2 นี้ สามารถอ่าน memory ของ process อื่นใน windows ได้
+2018-01-13 14:33:42	&xellos	ส่วนของ project zero ก็ variant นี้ ไปอ่าน host kernel จาก guest os ซึ่งเท่ากับว่าอ่านได้ทั้ง physical memory ของ host
+2018-01-13 14:38:21	&xellos	ที่อ่าน memory ของ host kernel ได้ เพราะว่า host OS จะต้องแบ่ง memory ให้ guest และมีการ map memory ของ guest เอาไว้
+2018-01-13 14:39:51	&xellos	ดังนั้น memory ในส่วนที่ guest OS access ได้ host OS ก็ต้อง access ได้หมด
+2018-01-13 14:42:35	&xellos	attack นี้ซับซ้อนมาก ถ้าจะให้รู้เรื่อง ต้องลองเอง ถ้าใครสนใจก็ไปอ่านเองได้ที่ project zero blog
+2018-01-13 14:43:23	 *	xellos ก็ไม่เข้าใจ เนื่องด้วยไม่ได้เล่นด้วย
+2018-01-13 14:44:53	&xellos	มันก็มีส่วน dump branch history buffer เพื่อ leak address 20 bit ของ host kernel
+2018-01-13 14:46:23	&xellos	ส่วน attack ของ variant 2 ก็อธิบายได้แค่นี้แหละ ใครอยากรู้ต้องเล่นกันเองแล้ว
+2018-01-13 14:48:54	&xellos	สรุป variant นี้ ทำให้สามารถอ่าน memory ของ victim process ได้จริง โดยที่ไม่ต้องมี code ไป run ใน victim process เหมือน variant 1
+2018-01-13 14:49:14	&xellos	แต่จะทำได้จริงนั้น ยากมาก
+2018-01-13 14:52:21	&xellos	ต้องรู้ว่า victim process โหลด code ที่ address ไหน มี indirect jmp ไหนที่ใช้ได้ ตรงนี้ก็ต้องเลือกส่วนที่ control register บางตัวได้
+2018-01-13 14:52:47	&xellos	ส่วนนี้ใน windows ไม่ค่อยยาก เพราะทุก process load dll ที่ virtual memory เดียวกัน
+2018-01-13 14:53:38	&xellos	แต่ใน linux นั้นจะยากกว่ามาก ถ้า executable เป็น PIE
+2018-01-13 14:54:23	&xellos	หลังจากนั้น ก็ต้องมาเลือก gadget ใน victim process เพื่อหลอกให้ speculative fetch memory เข้า cache
+2018-01-13 14:55:23	&xellos	และก็ address ที่ให้ fetch memory เข้า cache นั้น attacker ต้องอ่านได้ด้วย
+2018-01-13 14:56:45	&xellos	condition พวกนี้ ทำให้ attack นี้ต้องเขียนมาเฉพาะว่าจะ attack process ไหน ที่ binary เป็นอย่างไร
+2018-01-13 14:58:03	&xellos	และที่ลำบอกอีกคือ cpu ในแต่ละรุ่น อาจจะมีการเก็บ branch target history ต่างกัน และอาจจะวิธีทำ indirect jmp/call prediction ที่ต่างกัน
+2018-01-13 14:59:25	&xellos	exploit ที่เขียนอาจจะทำงานสำหรับ cpu นี้ แต่ไม่ทำงานกับอีก cpu หนึ่ง
+2018-01-13 14:59:44	&xellos	คราวนี้มาดูเรื่อง patch
+2018-01-13 15:00:44	&xellos	variant นี้จะมี hardware กับ software
+2018-01-13 15:01:09	&xellos	แต่ถ้า patch hardware แล้ว software ก็ต้อง update ให้ใช้ feature ใหม่ด้วย
+2018-01-13 15:02:07	&xellos	hardware patch สำหรับ intel บน linux ก็แค่ update intel microcode package
+2018-01-13 15:06:44	&xellos	ส่วนของ windows ไม่แน่ใจว่า microcode โหลดมาได้หรือเปล่า หรือต้องของ OEM update BIOS อย่างเดียว
+2018-01-13 15:08:12	&xellos	https://newsroom.intel.com/wp-content/uploads/sites/11/2018/01/Intel-Analysis-of-Speculative-Execution-Side-Channels.pdf
+2018-01-13 15:08:50	&xellos	ของ intel เองคือเพิ่มมาอีก 3 capablity คือ IBRS, STIBP, IBPB อ่านเอาเองใน pdf
+2018-01-13 15:09:43	&xellos	windows kernel ไม่รู้ว่า patch ยังไง ถ้าไม่ได้ update microcode
+2018-01-13 15:10:19	&xellos	ส่วน linux ก็จะใช้ retpoline และ hardware ถ้า update microcode
+2018-01-13 15:12:18	&xellos	retpoline ก็คือเปลี่ยนจาก indirect jump/call เป็น load address ที่จะ jump ไปใน stack แล้ว ret
+2018-01-13 15:15:33	&xellos	แต่จะไม่ใช่แค่ push ลง stack แล้ว ret เพราะจะทำให้เกิด RSB (Return Stack Buffer) underflow แล้วจะ backward ไปใช้ Branch Target Buffer เหมือนเดิม
+2018-01-13 15:15:55	&xellos	RSB ใช้สำหรับ predict ตอน ret
+2018-01-13 15:16:31	&xellos	retpoline เลยเพิ่ม call มาด้วย เพื่อที่จะ balance call/ret เป็น
+2018-01-13 15:16:45	&xellos	push jump_addr_to_stack
+2018-01-13 15:17:04	&xellos	call retpoline_target
+2018-01-13 15:17:22	&xellos	ตรง retpoline_target ก็จะเลื่อน stack แล้ว ret
+2018-01-13 15:17:33	&xellos	lea rsp, [rsp+8]
+2018-01-13 15:17:34	&xellos	ret
+2018-01-13 15:18:18	&xellos	จบ spectre variant 2
+2018-01-13 15:22:01	&xellos	ใช่ เรื่อง patch spectre อะ จริงๆ แล้ว application ทั้งหมดมีปัญหา เพราะมี indirect jmp/call ทั้งนั้น
+2018-01-13 15:22:39	&xellos	ไม่แน่ใจว่าถ้า patch hardware แล้ว enable ทั้งหมด จะมีผลกับ application ทั้งหมดหรือเปล่า
+2018-01-13 15:23:03	&xellos	แต่ถ้า hardware ไม่ได้ update ก็ต้อง compile application ทั้งหมดบนเครื่อง
+2018-01-13 15:24:00	&xellos	ส่วน variant 1 ที่บอกว่าใช้ lfence นั้นอะ ถ้า application ไหนมีปัญหา ก็ต้องใส่แล้ว compile ใหม่เหมือนกัน
+2018-01-13 15:29:13	&xellos	อ่านแล้ว คือ ถ้า patch hardware แล้ว (คือ update microcode แล้ว) ก็ต้อง update kernel ให้ใช้ feature ใหม่ของ hardware ด้วย
+2018-01-13 15:29:45	&xellos	ถ้าทำทั้งคู่ ไม่ต้อง compile application ใหม่
+2018-01-13 15:32:47	&xellos	เอาจริงๆ คือ bios ปกติ ไม่มี user ไหน update และก็หลายๆ OEM ไม่ update ให้เครื่องเก่าหรอก
+2018-01-13 15:33:16	&xellos	ดังนั้น windows user ก็เท่ากับว่ายังไม่ได้ patch
+2018-01-13 15:33:30	&xellos	ส่วน meltdown variant 3 ไว้ต่อพรุ่งนี้
+2018-01-13 15:34:24	&xellos	สงสัยอะไรกันหรือเปล่า
+2018-01-13 15:51:15	&xellos	On Windows (client), the update is only downloaded if the antivirus vendor did set a registry key, for compatibility reasons.
+2018-01-13 15:51:41	&xellos	ใครใช้ antivirus ที่ไม่ update ก็ไม่ได้ windows patch
+2018-01-13 15:51:59	&xellos	On Windows Server, KvaShadow (KPTI) and IBRS are disabled by default because of the performance impact, and have to be explicitly enabled by the administrator if he's concerned enough about security.
+2018-01-13 15:52:20	&xellos	บน server ลง patch ไปก็ไม่ได้ enable นะต้อง enable เอง
+2018-01-13 15:52:58	&xellos	จาก https://gist.github.com/woachk/2f86755260f2fee1baf71c90cd6533e9
+2018-01-14 13:33:39	&xellos	มาต่อแล้ว
+2018-01-14 13:33:48	&xellos	variant 3: meltdown
+2018-01-14 13:37:03	&xellos	ก่อนเข้าเรื่อง attack ว่าทำไง ต้องอธิบาย OS ก่อน
+2018-01-14 13:38:18	&xellos	ก่อนที่มีจะมี meltdown  OS ส่วนมากจะแบ่ง virtual memory ในแต่ละ process ให้มีส่วนของ user space กับ kernel space
+2018-01-14 13:41:46	&xellos	http://www.programering.com/a/MDO1kjNwATI.html
+2018-01-14 13:42:09	&xellos	ตามรูปในเว็บข้างบน จะเป็นของ 32 bit linux
+2018-01-14 13:42:53	&xellos	คือให้ address ตั้งแต่ 0 - 0xc0000000 เป็นของ user space ของแต่ละ process
+2018-01-14 13:43:12	&xellos	ส่วน 0xc0000000 - 0xffffffff เป็น kernel space
+2018-01-14 13:44:18	&xellos	โดยที่ kernel space ของทุก process จะ map ไปที่ physical address เดียวกัน
+2018-01-14 13:45:07	&xellos	ส่วน 64 bit linux จะแบ่งตามนี้ https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
+2018-01-14 13:45:27	&xellos	ส่วน user space คือ 0000000000000000 - 00007fffffffffff
+2018-01-14 13:46:44	&xellos	และ kernel space คือ ffff800000000000 - ffffffffffffffff
+2018-01-14 13:48:41	&xellos	และ OS ส่วนมาก (windows, linux, mac os 64 bit, ...) ได้มีการ map kernel space ไว้ใน virtual memory ของทุก process
+2018-01-14 13:49:18	&xellos	โดยใช้ feature ของ hardware set ไว้ว่า kernel space เป็น privilege page
+2018-01-14 13:49:31	&xellos	จะ access ได้จาก privilege mode เท่านั้น
+2018-01-14 13:52:34	&xellos	ที่ design กันแบบนี้ ก็เพื่อความเร็วในการทำ context switching ของ user ไป kernel และ kernel ไป user
+2018-01-14 13:53:38	&xellos	ซึ่ง context switching แบบนี้ ส่วนมากเกิดเมื่อมีการเรียก system call
+2018-01-14 13:57:39	&xellos	ที่มันเร็ว เพราะว่าเมื่อ switch จาก user ไป kernel ก็ยังสามารถใช้ page table เดิม ไม่ต้องมีการ flush TLB
+2018-01-14 13:59:10	&xellos	และเมื่อทำ system call เสร็จ ก็ switch จาก kernel ไป user โดยใช้ page table เดิม
+2018-01-14 13:59:49	&xellos	จบ intro มาเข้า attack ของ meltdown จริงๆ
+2018-01-14 14:00:49	&xellos	จากเรื่อง speculative execution ที่อธิบายไปเมื่อวาน ว่าจะมีการทำสั่งล่วงหน้า
+2018-01-14 14:01:23	&xellos	คราวนี้ถ้ามีการคำสั่ง
+2018-01-14 14:01:39	&xellos	mov rdi, kernel_address
+2018-01-14 14:01:47	&xellos	mov rax, [rdi]
+2018-01-14 14:02:28	&xellos	2 คำสั่งนี้ คือให้ load ข้อมูลที่ kernel_address ไว้ใน register rax
+2018-01-14 14:03:29	&xellos	โดยปกติ ถ้ามีคำสั่งแบบนี้ใน linux ก็จะเกิด SIGSEGV (Segmentation Fault)
+2018-01-14 14:04:19	&xellos	ก็มี idea ว่าถ้าตัว speculative execution ทำแทนมันจะโหลดหรือไม่
+2018-01-14 14:04:55	&xellos	ก็เลยลอง side channel attack แบบเดียวกับ 2 variant ก่อนเลย
+2018-01-14 14:06:24	&xellos	xor eax,eax; mov al, [rdi]; shl eax, 12; mov bl, [rbx+rax]
+2018-01-14 14:07:01	&xellos	โดย rdi คือ kernel address และ rbx คือ address ของ user space ของเราเอง
+2018-01-14 14:07:44	&xellos	ใน process ปกติ mov al, [rdi] ก็จะเกิด SIGSEGV
+2018-01-14 14:08:37	&xellos	แต่สำหรับ intel ที่มีปัญหา meltdown  ตัว speculative execution อาจจะทำงานได้จนถึง mov bl, [rbx+rax]
+2018-01-14 14:09:32	&xellos	ซึ่งทำ memory address  rbx+(value_at_kernel_addr*4096) ถูกโหลดเข้า cache
+2018-01-14 14:10:12	&xellos	ก็จะทำให้เกิด side channel attack ที่ทำการ leak kernel info จาก user process ได้
+2018-01-14 14:14:31	&xellos	แต่โดยปกติ เวลาเกิด SIGSEGV โปรแกรมเราจะโดน abort ดังนั้นโปรแกรมเราก็ต้องมีการ handle SIGSEGV
+2018-01-14 14:16:00	&xellos	อีกวิธีที่หนึ่งที่เขียนไว้ใน paper ที่ไม่ทำให้เกิด SIGSEGV คือใช้ intel TSX ที่มีใน cpu บางรุ่น
+2018-01-14 14:22:19	&xellos	คือให้ทำงานคำสั่ง group ข้างบน ซึ่งเมื่อมี exception อะไรเกิดขึ้นก็จะ rollback และทำงานต่อเหมือนไม่มีอะไรเกิดขึ้น
+2018-01-14 14:23:39	&xellos	วิธีสุดท้ายที่มี public กันอยู่ใน project zero blog คือเอาคำสั่งที่หลอกให้ speculative ไว้ใน if block
+2018-01-14 14:24:27	&xellos	แล้วให้ตัว speculative predict ผิดให้ไปทำใน if block แต่จริงๆ ต้องไม่เข้า if
+2018-01-14 14:25:01	&xellos	วิธีนี้ก็จะไม่เกิด SIGSEGV แต่ต้องมีการ train branch prediction ก่อน
+2018-01-14 14:25:31	&xellos	มาดู PoC เลยดีกว่า https://github.com/IAIK/meltdown/
+2018-01-14 14:26:06	&xellos	repo นี้เป็นของคนที่เจอช่องโหว่ meltdown เลย แต่เขาใส่ไว้แค่ poc
+2018-01-14 14:28:06	&xellos	code ที่ทำ meltdown อยู่ใน https://github.com/IAIK/meltdown/blob/master/libkdump/libkdump.c
+2018-01-14 14:28:54	&xellos	ส่วนที่หลอกให้ speculative execution โหลดข้อมูลจากใน kernel address แล้วแปลงไปเป็นโหลด memory ใน user space
+2018-01-14 14:29:35	&xellos	คือ address 46-78 สำหรับ x64 และมี 3 แบบ
+2018-01-14 14:30:47	&xellos	เปลี่ยนเป็น https://github.com/IAIK/meltdown/blob/f8f1e9b05877ec834ea8f60336b6cf94cbe04c89/libkdump/libkdump.c บรรทัดจะได้ตรงกันแน่ๆ
+2018-01-14 14:32:08	&xellos	แบบที่ 2 (meltdown_nonull) ก็คือแบบเดียวกับ assembly ที่เขียนให้ดูข้างบน
+2018-01-14 14:33:18	&xellos	แบบแรกคือเพิ่ม mov rsi, [rsi] เข้าไปก่อน mov al, [rcx] โดย rsi เป็น 0
+2018-01-14 14:33:36	&xellos	ซึ่งทำให้เกิด SIGSEGV ตั้งแต่ตำสั่ง mov rsi, [rsi]
+2018-01-14 14:34:05	&xellos	แบบนี้อาจจะได้ผลดีกว่าสำหรับบางเครื่อง
+2018-01-14 14:36:32	&xellos	code ส่วนที่สำคัญเริ่มจาก libkdump_init() function
+2018-01-14 14:37:58	&xellos	โดยมีการ prepare mem ที่บรรทัด 383-393 ไว้สำหรับ leak ข้อมูล โดย mem คือส่วนที่เอาไว้หลอกให้ speculative โหลดเข้า cache
+2018-01-14 14:38:44	&xellos	และก็มีการ setup signal handler ที่บรรทัด 424
+2018-01-14 14:39:55	&xellos	ตอนจะทำ leak info ก็คือ set ค่า phys ให้เป็น address ที่ต้องการ แล้วเรียก libkdump_read_signal_handler()
+2018-01-14 14:40:45	&xellos	ในนั้นก็มีการใช้ setjmp ก่อนเรียก meltdown เพื่อที่จะ restore จาก SIGSEGV ได้
+2018-01-14 14:41:38	&xellos	พอ meltdown เรียกเสร็จทำ flush_reload เพื่อ check ว่า memory ไหนอยู่ใน cache ที่บรรทัด 507-514
+2018-01-14 14:41:53	&xellos	จบ attack ของ meltdown
+2018-01-14 14:43:24	&xellos	มาดูเรื่องผลกระทบของ meltdown
+2018-01-14 14:44:38	&xellos	เนื่องด้วย kernel ต้องเก็บข้อมูลของ process ทั้งหมดในเครื่อง ดังนั้น kernel ต้องมีข้อมูลทั้งหมดของทุก process
+2018-01-14 14:45:15	&xellos	ใน 64 bit linux,mac ใน kernel จะมีส่วนที่ direct mapping of all phys. memory
+2018-01-14 14:45:34	&xellos	ถ้า leak ส่วนนี้ก็ leak ได้ทั้ง physical memory
+2018-01-14 14:46:15	&xellos	ส่วน windows จะเก็บเป็น paged pool กับ nonpaged pool ก็ต้องอ่านจากตรงนี้เอา
+2018-01-14 14:48:33	&xellos	และที่ทำให้ attack นี้สำเร็จคือ OS ได้ map kernel space ไว้ใน user process (และปัญหาของ intel CPU ด้วย)
+2018-01-14 14:49:49	&xellos	ดังนั้น patch ที่ทำกันคือก่อนจะเปลียนจาก kernel mode เป็น user mode ก็ unmap kernel space ออกไป
+2018-01-14 14:50:11	&xellos	เวลาเปลี่ยนจาก user mode เป็น kernel mode ก็ค่อย map kernel space อีกที
+2018-01-14 14:50:32	&xellos	การที่จะ map/unmap kernel space ในคือการเปลี่ยน page table
+2018-01-14 14:51:00	&xellos	การเปลี่ยน page table ปกติต้อง flush TLB cache ด้วย
+2018-01-14 14:52:49	&xellos	ทำให้เกิด TLB miss ทุกครั้งเมื่อมีการเกิด context switching
+2018-01-14 14:53:37	&xellos	ด้วยเหตุผลนี้ patch ช่องโหว่นี้ ทำให้ performance ตกลงไปเยอะพอสมควร แล้วแต่ application
+2018-01-14 14:54:24	&xellos	สำหรับ linux จะเรียกว่า KPTI (ของเดิมคือ KAISER)
+2018-01-14 14:54:51	&xellos	windows จะเรียกว่า KvaShadow
+2018-01-14 14:56:07	&xellos	ส่วน cpu ไหนที่มี PCID กับ INVPCID feature ก็จะทำให้ patch นี้มีผลกระทบกับ performance น้อยลง
+2018-01-14 14:56:36	&xellos	จบหมดแล้ว มีคำถามอะไรกันหรือเปล่า
