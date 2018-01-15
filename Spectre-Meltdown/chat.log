@@ -64,7 +64,6 @@
 2018-01-13 13:21:32	&xellos	เจอพวก branch ก็ predict เอาถ้าถูก ก็ commit ผลลัพธ์ โดยไม่ต้อง execute แล้ว
 2018-01-13 13:21:40	&xellos	ถ้าผิดก็ rollback
 2018-01-13 13:23:41	&xellos	spectre/meltdown คือ side channel attack ที่เกิดจาก specualtive execution มีการ fetch memory เข้า cache
-2018-01-13 13:23:42	-->	oszo (0520@pwnme-bfq.k59.p1g0vn.IP) has joined #2600
 2018-01-13 13:26:22	&xellos	โดยหลอกให้ speculative ไป fetch memory ผิดที่
 2018-01-13 13:28:31	&xellos	ดังนั้น attacker ต้องสามารถ clear cache และอ่าน memory ส่วนที่ victim อ่านได้ เพื่อที่จะ check ว่าข้อมูลของ memory address ไหนอยู่ใน cache
 2018-01-13 13:28:43	&xellos	แล้วแปลงกลับมาเป็นข้อมูล
